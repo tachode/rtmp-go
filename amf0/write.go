@@ -14,9 +14,29 @@ func Write(w io.Writer, value any) error {
 
 	// Convenience handling to convert common go types into Values
 	switch v := value.(type) {
+	case float32:
+		value = Number(v)
 	case float64:
 		value = Number(v)
 	case int:
+		value = Number(v)
+	case int8:
+		value = Number(v)
+	case int16:
+		value = Number(v)
+	case int32:
+		value = Number(v)
+	case int64:
+		value = Number(v)
+	case uint:
+		value = Number(v)
+	case uint8:
+		value = Number(v)
+	case uint16:
+		value = Number(v)
+	case uint32:
+		value = Number(v)
+	case uint64:
 		value = Number(v)
 	case bool:
 		value = Boolean(v)

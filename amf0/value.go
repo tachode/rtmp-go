@@ -2,12 +2,12 @@ package amf0
 
 import "io"
 
-type Value interface {
+type MutableValue interface {
 	Read(r io.Reader) error
-	WritableValue
+	Value
 }
 
-type WritableValue interface {
+type Value interface {
 	Type() Type
 	Write(w io.Writer) error
 }

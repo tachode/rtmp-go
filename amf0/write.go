@@ -30,7 +30,7 @@ func Write(w io.Writer, value any) error {
 		value = Date(v)
 	}
 
-	if v, ok := value.(WritableValue); ok {
+	if v, ok := value.(Value); ok {
 		err := binary.Write(w, binary.BigEndian, v.Type())
 		if err != nil {
 			return err

@@ -29,9 +29,14 @@ func TestUnmarshal(t *testing.T) {
 	message.RegisterType(new(MockMessage))
 
 	t.Run("unknown message type", func(t *testing.T) {
-		_, err := message.Unmarshal(123, 99, 456, []byte{1, 2, 3})
-		assert.Error(t, err)
-		assert.Equal(t, "unknown RTMP message Type(99)", err.Error())
+		msg, err := message.Unmarshal(123, 99, 456, []byte{1, 2, 3})
+		assert.NoError(t, err)
+		assert.NotNil(t, msg)
+		assert.Equal(t, message.Type(99), msg.Type())
+		assert.Equal(t, uint32(3), msg.Metadata().Length)
+		assert.Equal(t, uint32(123), msg.Metadata().Timestamp)
+		assert.Equal(t, uint32(456), msg.Metadata().StreamId)
+		assert.Equal(t, []byte{1, 2, 3}, msg.(*message.UnimplementedMessage).Payload)
 	})
 
 	t.Run("successful unmarshal", func(t *testing.T) {

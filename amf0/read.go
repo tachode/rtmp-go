@@ -47,3 +47,51 @@ func Read(r io.Reader) (out any, err error) {
 
 	return
 }
+
+// Convenience function when the type is known to be a string of some kind
+func ReadString(r io.Reader) (string, error) {
+	val, err := Read(r)
+	if err != nil {
+		return "", err
+	}
+	switch val := val.(type) {
+	case String:
+		return string(val), nil
+	case LongString:
+		return string(val), nil
+	case XmlDocument:
+		return string(val), nil
+	default:
+		return "", fmt.Errorf("expected string, got %T", val)
+	}
+}
+
+// Convenience function when the type is known to be a Number
+func ReadNumber(r io.Reader) (float64, error) {
+	val, err := Read(r)
+	if err != nil {
+		return 0, err
+	}
+	switch val := val.(type) {
+	case Number:
+		return float64(val), nil
+	default:
+		return 0, fmt.Errorf("expected number, got %T", val)
+	}
+}
+
+// Convenience function when the type is known to be an Object
+func ReadObject(r io.Reader) (Object, error) {
+	val, err := Read(r)
+	if err != nil {
+		return nil, err
+	}
+	switch val := val.(type) {
+	case Object:
+		return val, nil
+	case Null:
+		return nil, nil
+	default:
+		return nil, fmt.Errorf("expected object, got %T", val)
+	}
+}

@@ -25,11 +25,12 @@ func _() {
 	_ = x[RecordsetMarker-14]
 	_ = x[XmlDocumentMarker-15]
 	_ = x[TypedObjectMarker-16]
+	_ = x[AvmplusObjectMarker-17]
 }
 
-const _Type_name = "NumberMarkerBooleanMarkerStringMarkerObjectMarkerMovieclipMarkerNullMarkerUndefinedMarkerReferenceMarkerEcmaArrayMarkerObjectEndMarkerStrictArrayMarkerDateMarkerLongStringMarkerUnsupportedMarkerRecordsetMarkerXmlDocumentMarkerTypedObjectMarker"
+const _Type_name = "NumberMarkerBooleanMarkerStringMarkerObjectMarkerMovieclipMarkerNullMarkerUndefinedMarkerReferenceMarkerEcmaArrayMarkerObjectEndMarkerStrictArrayMarkerDateMarkerLongStringMarkerUnsupportedMarkerRecordsetMarkerXmlDocumentMarkerTypedObjectMarkerAvmplusObjectMarker"
 
-var _Type_index = [...]uint8{0, 12, 25, 37, 49, 64, 74, 89, 104, 119, 134, 151, 161, 177, 194, 209, 226, 243}
+var _Type_index = [...]uint16{0, 12, 25, 37, 49, 64, 74, 89, 104, 119, 134, 151, 161, 177, 194, 209, 226, 243, 262}
 
 func (i Type) String() string {
 	if i >= Type(len(_Type_index)-1) {

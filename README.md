@@ -1,6 +1,6 @@
 # rtmp-go
 
-Go implementation of RTMP, focusing on ease of use and performance. This project does not aim to be complete -- it implements those portions of RTMP that are in use by modern RTMP clients and servers. For example, AMF0 object references are not implemented, and AMF3 is not currently sent or received.
+Go implementation of RTMP, focusing on ease of use and performance. This project does not aim to be complete -- it implements those portions of RTMP that are in use by modern RTMP clients and servers. For example, AMF0 object references are not implemented, and AMF3 is not currently sent or received. Aggregate message handling is also not completed.
 
 # Status
 
@@ -10,7 +10,7 @@ This library is currently a work in progress. The planned initial release consis
 
 🗹 AMF0 Library
 
-☐ RTMP Message Library
+🗹  RTMP Message Library
 
 ☐ Chunk Stream Implementation
 
@@ -27,6 +27,8 @@ This library is currently a work in progress. The planned initial release consis
 These will be added shortly after the 1.0 release is complete
 
 ☐ RTMPS (TLS) support
+
+☐ RTMP Aggregate Message type
 
 ## Not Currently Planned
 

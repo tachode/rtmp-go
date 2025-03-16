@@ -17,10 +17,12 @@ func RegisterType(v Message) {
 
 func Unmarshal(timestamp uint32, typ Type, streamId uint32, payload []byte) (Message, error) {
 	prototype, ok := typeRegistry[typ]
-	if !ok {
-		return nil, fmt.Errorf("unknown RTMP message %v", typ)
+	var copy any
+	if ok {
+		copy = reflect.New(reflect.Indirect(reflect.ValueOf(prototype)).Type()).Interface()
+	} else {
+		copy = &UnimplementedMessage{messageType: typ}
 	}
-	copy := reflect.New(reflect.Indirect(reflect.ValueOf(prototype)).Type()).Interface()
 	message, ok := copy.(Message)
 	if !ok {
 		return nil, fmt.Errorf("invalid registered type %T does not implement Message interface", prototype)

@@ -14,7 +14,7 @@ func _() {
 	_ = x[TypeUserControlMessage-4]
 	_ = x[TypeWindowAcknowledgementSize-5]
 	_ = x[TypeSetPeerBandwidth-6]
-	_ = x[TypeEdgeAndOriginServerCommand-7]
+	_ = x[TypeVirtualControl-7]
 	_ = x[TypeAudioMessage-8]
 	_ = x[TypeVideoMessage-9]
 	_ = x[TypeAmf3DataMessage-15]
@@ -25,18 +25,29 @@ func _() {
 	_ = x[TypeAmf0CommandMessage-20]
 	_ = x[TypeAggregateMessage-22]
 	_ = x[TypeGoAway-32]
+	_ = x[TypeSetPacketSize-1]
+	_ = x[TypeControlMessage-4]
+	_ = x[TypeServerBandwidth-5]
+	_ = x[TypeClientBandwidth-6]
+	_ = x[TypeDataExtended-15]
+	_ = x[TypeContainerExtended-16]
+	_ = x[TypeCommandExtended-17]
+	_ = x[TypeData-18]
+	_ = x[TypeContainer-19]
+	_ = x[TypeCommand-20]
+	_ = x[TypeUdp-21]
+	_ = x[TypePresent-23]
 }
 
 const (
-	_Type_name_0 = "SetChunkSizeAbortMessageAcknowledgementUserControlMessageWindowAcknowledgementSizeSetPeerBandwidthEdgeAndOriginServerCommandAudioMessageVideoMessage"
-	_Type_name_1 = "Amf3DataMessageAmf3SharedObjectMessageAmf3CommandMessageAmf0DataMessageAmf0SharedObjectMessageAmf0CommandMessage"
-	_Type_name_2 = "AggregateMessage"
-	_Type_name_3 = "GoAway"
+	_Type_name_0 = "SetChunkSizeAbortMessageAcknowledgementUserControlMessageWindowAcknowledgementSizeSetPeerBandwidthVirtualControlAudioMessageVideoMessage"
+	_Type_name_1 = "Amf3DataMessageAmf3SharedObjectMessageAmf3CommandMessageAmf0DataMessageAmf0SharedObjectMessageAmf0CommandMessageUdpAggregateMessagePresent"
+	_Type_name_2 = "GoAway"
 )
 
 var (
-	_Type_index_0 = [...]uint8{0, 12, 24, 39, 57, 82, 98, 124, 136, 148}
-	_Type_index_1 = [...]uint8{0, 15, 38, 56, 71, 94, 112}
+	_Type_index_0 = [...]uint8{0, 12, 24, 39, 57, 82, 98, 112, 124, 136}
+	_Type_index_1 = [...]uint8{0, 15, 38, 56, 71, 94, 112, 115, 131, 138}
 )
 
 func (i Type) String() string {
@@ -44,13 +55,11 @@ func (i Type) String() string {
 	case 1 <= i && i <= 9:
 		i -= 1
 		return _Type_name_0[_Type_index_0[i]:_Type_index_0[i+1]]
-	case 15 <= i && i <= 20:
+	case 15 <= i && i <= 23:
 		i -= 15
 		return _Type_name_1[_Type_index_1[i]:_Type_index_1[i+1]]
-	case i == 22:
-		return _Type_name_2
 	case i == 32:
-		return _Type_name_3
+		return _Type_name_2
 	default:
 		return "Type(" + strconv.FormatInt(int64(i), 10) + ")"
 	}

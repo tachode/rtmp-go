@@ -12,7 +12,7 @@ This library is currently a work in progress. The planned initial release consis
 
 🗹  RTMP Message Library
 
-☐ Chunk Stream Implementation
+🗹 Chunk Stream Implementation
 
 ☐ Connection Implementation
 
@@ -26,7 +26,7 @@ This library is currently a work in progress. The planned initial release consis
 
 These will be added shortly after the 1.0 release is complete
 
-☐ RTMPS (TLS) support
+☐ RTMPS (TLS) examples
 
 ☐ RTMP Aggregate Message type
 

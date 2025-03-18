@@ -3,7 +3,7 @@ package connection_test
 import (
 	"testing"
 
-	"github.com/tachode/rtmp-go/connection"
+	"github.com/tachode/rtmp-go/internal/connection"
 )
 
 func TestQueue_EnqueueDequeue(t *testing.T) {

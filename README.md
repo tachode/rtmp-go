@@ -16,10 +16,6 @@ This library is currently a work in progress. The planned initial release consis
 
 ☐ Connection Implementation
 
-☐ Server Interface
-
-☐ Client Interface
-
 ☐ Examples
 
 ## Fast Follow

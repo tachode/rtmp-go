@@ -3,14 +3,27 @@ package connection
 import (
 	"bufio"
 	"bytes"
+	"crypto/rand"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"net"
+	"reflect"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/tachode/rtmp-go/chunkstream"
 	"github.com/tachode/rtmp-go/message"
+)
+
+type Role uint8
+
+//go:generate stringer -type=Role
+const (
+	Client Role = iota
+	Server
+	NoHandshake
 )
 
 // TODO -- work out how we set outbound chunk sizes
@@ -19,26 +32,43 @@ type connection struct {
 	conn                net.Conn
 	outboundQueue       *PriorityQueue[[]byte]
 	inboundQueue        chan (message.Message)
-	outboundChunkStream map[uint32]outboundChunkStream
+	outboundChunkStream map[uint32]*outboundChunkStream
 
 	// mu protects error
 	mu  sync.RWMutex
 	err error
+
+	// statistics
+	bytesWritten atomic.Uint64
+	bytesRead    atomic.Uint64
 }
 
 type outboundChunkStream struct {
+	mu       sync.Mutex
 	cs       *chunkstream.Outbound
 	priority int
 }
 
-func New(netConn net.Conn, priorityCount int) (*connection, error) {
+func New(netConn net.Conn, priorityCount int, role Role) (*connection, error) {
 	c := &connection{
 		conn:                netConn,
 		outboundQueue:       NewPriorityQueue[[]byte](priorityCount, 10),
 		inboundQueue:        make(chan message.Message),
-		outboundChunkStream: make(map[uint32]outboundChunkStream),
+		outboundChunkStream: make(map[uint32]*outboundChunkStream),
 	}
-	c.AddChunkStreamId(2, 0) // CS ID 2, at high priority, for command messages
+	c.CreateOutboundChunkstream(2, 0) // CS ID 2, at high priority, for command messages
+
+	var err error
+	switch role {
+	case Client:
+		err = c.clientHandshake()
+	case Server:
+		err = c.serverHandshake()
+	}
+	if err != nil {
+		return nil, fmt.Errorf("handshake: %w", err)
+	}
+
 	go c.writeMessages()
 	go c.readMessages()
 	return c, nil
@@ -68,6 +98,8 @@ func (c *connection) WriteMessage(msg message.Message, chunkStreamId int) (err e
 	if !found {
 		return ErrNoSuchChunkstream
 	}
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
 	chunks, err := cs.cs.Marshal(msg)
 	if err != nil {
 		return
@@ -80,7 +112,7 @@ func (c *connection) WriteMessage(msg message.Message, chunkStreamId int) (err e
 
 // This is not synchronized with WriteMessage -- callers must take care not
 // to call them from different goroutines without proper locking.
-func (c *connection) AddChunkStreamId(chunkStreamId int, priority int) (err error) {
+func (c *connection) CreateOutboundChunkstream(chunkStreamId int, priority int) (err error) {
 	err = c.getError()
 	if err != nil {
 		return
@@ -89,7 +121,7 @@ func (c *connection) AddChunkStreamId(chunkStreamId int, priority int) (err erro
 	if found {
 		return ErrChunkStreamAlreadyExists
 	}
-	c.outboundChunkStream[uint32(chunkStreamId)] = outboundChunkStream{
+	c.outboundChunkStream[uint32(chunkStreamId)] = &outboundChunkStream{
 		cs:       chunkstream.NewOutboundChunkStream(uint32(chunkStreamId)),
 		priority: priority,
 	}
@@ -186,13 +218,26 @@ func (c *connection) SetWriteDeadline(t time.Time) error {
 
 ///////////////////////////////////////////////////////////////////////////
 
+func (c *connection) OutboundQueueLength() int {
+	return c.outboundQueue.Length()
+}
+
+func (c *connection) BytesWritten() uint64 {
+	return c.bytesWritten.Load()
+}
+
+func (c *connection) BytesRead() uint64 {
+	return c.bytesRead.Load()
+}
+
 func (c *connection) writeMessages() {
 	for {
 		chunk := c.outboundQueue.Dequeue()
 		if chunk == nil {
 			return
 		}
-		_, err := c.conn.Write(chunk)
+		n, err := c.conn.Write(chunk)
+		c.bytesWritten.Add(uint64(n))
 		if err != nil {
 			c.setError("write", err)
 		}
@@ -229,6 +274,7 @@ func (c *connection) readMessages() {
 
 		n, msg, err := cs.Read(r)
 		bytesRead += n
+		c.bytesRead.Add(uint64(n))
 		if err != nil {
 			c.setError("read", err)
 		}
@@ -269,4 +315,124 @@ func (c *connection) setError(where string, err error) {
 	c.err = fmt.Errorf("%s: %w", where, err)
 	c.outboundQueue.Close()
 	c.conn.Close()
+}
+
+type handshakeMessage struct {
+	Time   uint32
+	Time2  uint32
+	Random [1528]byte
+}
+
+func (c *connection) clientHandshake() error {
+	start := time.Now()
+
+	// Write C0 (protocol version)
+	_, err := c.conn.Write([]byte{3})
+	if err != nil {
+		return err
+	}
+
+	// Write C1
+	var c1 handshakeMessage
+	rand.Read(c1.Random[:])
+	err = binary.Write(c.conn, binary.BigEndian, &c1)
+	if err != nil {
+		return err
+	}
+
+	// Wait for S0 / S1
+	var serverVersion uint8
+	err = binary.Read(c.conn, binary.BigEndian, &serverVersion)
+	if err != nil {
+		return err
+	}
+	if serverVersion != 3 {
+		return ErrInvalidVersion
+	}
+	var s1 handshakeMessage
+	err = binary.Read(c.conn, binary.BigEndian, &s1)
+	if err != nil {
+		return err
+	}
+
+	// Send C2
+	c2 := handshakeMessage{
+		Time:   s1.Time,
+		Time2:  uint32(time.Since(start) / time.Millisecond),
+		Random: s1.Random,
+	}
+	err = binary.Write(c.conn, binary.BigEndian, &c2)
+	if err != nil {
+		return err
+	}
+
+	// Wait for S2
+	var s2 handshakeMessage
+	err = binary.Read(c.conn, binary.BigEndian, &s2)
+	if err != nil {
+		return err
+	}
+	if s2.Time != c1.Time || !reflect.DeepEqual(s2.Random, c1.Random) {
+		return ErrHandshakeMismatch
+	}
+
+	return nil
+}
+
+func (c *connection) serverHandshake() error {
+	start := time.Now()
+
+	// Read client version (C0)
+	var clientVersion uint8
+	err := binary.Read(c.conn, binary.BigEndian, &clientVersion)
+	if err != nil {
+		return err
+	}
+	if clientVersion != 3 {
+		return ErrInvalidVersion
+	}
+
+	// Send server version (S0)
+	_, err = c.conn.Write([]byte{3})
+	if err != nil {
+		return err
+	}
+
+	// Send S1
+	var s1 handshakeMessage
+	rand.Read(s1.Random[:])
+	err = binary.Write(c.conn, binary.BigEndian, &s1)
+	if err != nil {
+		return err
+	}
+
+	// Read C1
+	var c1 handshakeMessage
+	err = binary.Read(c.conn, binary.BigEndian, &c1)
+	if err != nil {
+		return err
+	}
+
+	// Send S2
+	s2 := handshakeMessage{
+		Time:   c1.Time,
+		Time2:  uint32(time.Since(start) / time.Millisecond),
+		Random: c1.Random,
+	}
+	err = binary.Write(c.conn, binary.BigEndian, &s2)
+	if err != nil {
+		return err
+	}
+
+	// Read C2
+	var c2 handshakeMessage
+	err = binary.Read(c.conn, binary.BigEndian, &c2)
+	if err != nil {
+		return err
+	}
+	if c2.Time != s1.Time || !reflect.DeepEqual(c2.Random, s1.Random) {
+		return ErrHandshakeMismatch
+	}
+
+	return nil
 }

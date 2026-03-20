@@ -18,16 +18,44 @@ func _() {
 	_ = x[VideoCodecIdAvc-7]
 	_ = x[VideoCodecIdRealH263-8]
 	_ = x[VideoCodecIdMpeg4-9]
+	_ = x[VideoCodecIdVP8_ERTMP-1987063864]
+	_ = x[VideoCodecIdVP9_ERTMP-1987063865]
+	_ = x[VideoCodecIdAV1_ERTMP-1635135537]
+	_ = x[VideoCodecIdAvc_ERTMP-1635148593]
+	_ = x[VideoCodecIdHevc_ERTMP-1752589105]
+	_ = x[VideoCodecIdVVC_ERTMP-1987470129]
 }
 
-const _VideoCodecId_name = "Reserved0Reserved1SorensonH263Screen1On2VP6On2VP6AlphaScreen2AvcRealH263Mpeg4"
+const (
+	_VideoCodecId_name_0 = "Reserved0Reserved1SorensonH263Screen1On2VP6On2VP6AlphaScreen2AvcRealH263Mpeg4"
+	_VideoCodecId_name_1 = "AV1_ERTMP"
+	_VideoCodecId_name_2 = "Avc_ERTMP"
+	_VideoCodecId_name_3 = "Hevc_ERTMP"
+	_VideoCodecId_name_4 = "VP8_ERTMPVP9_ERTMP"
+	_VideoCodecId_name_5 = "VVC_ERTMP"
+)
 
-var _VideoCodecId_index = [...]uint8{0, 9, 18, 30, 37, 43, 54, 61, 64, 72, 77}
+var (
+	_VideoCodecId_index_0 = [...]uint8{0, 9, 18, 30, 37, 43, 54, 61, 64, 72, 77}
+	_VideoCodecId_index_4 = [...]uint8{0, 9, 18}
+)
 
 func (i VideoCodecId) String() string {
-	idx := int(i) - 0
-	if i < 0 || idx >= len(_VideoCodecId_index)-1 {
+	switch {
+	case i <= 9:
+		return _VideoCodecId_name_0[_VideoCodecId_index_0[i]:_VideoCodecId_index_0[i+1]]
+	case i == 1635135537:
+		return _VideoCodecId_name_1
+	case i == 1635148593:
+		return _VideoCodecId_name_2
+	case i == 1752589105:
+		return _VideoCodecId_name_3
+	case 1987063864 <= i && i <= 1987063865:
+		i -= 1987063864
+		return _VideoCodecId_name_4[_VideoCodecId_index_4[i]:_VideoCodecId_index_4[i+1]]
+	case i == 1987470129:
+		return _VideoCodecId_name_5
+	default:
 		return "VideoCodecId(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _VideoCodecId_name[_VideoCodecId_index[idx]:_VideoCodecId_index[idx+1]]
 }

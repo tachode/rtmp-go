@@ -37,6 +37,14 @@ func _() {
 	_ = x[TypeCommand-20]
 	_ = x[TypeUdp-21]
 	_ = x[TypePresent-23]
+	_ = x[TypeBytesRead-3]
+	_ = x[TypeFlexStream-15]
+	_ = x[TypeFlexObject-16]
+	_ = x[TypeFlexMessage-17]
+	_ = x[TypeNotify-18]
+	_ = x[TypeSharedObj-19]
+	_ = x[TypeInvoke-20]
+	_ = x[TypeMetadata-22]
 }
 
 const (

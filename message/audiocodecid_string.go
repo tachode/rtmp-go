@@ -17,23 +17,52 @@ func _() {
 	_ = x[AudioCodecIdNellymoser-6]
 	_ = x[AudioCodecIdG711ALaw-7]
 	_ = x[AudioCodecIdG711MuLaw-8]
-	_ = x[AudioCodecIdExtendedHeader-9]
+	_ = x[audioCodecIdExtendedHeader-9]
 	_ = x[AudioCodecIdAAC-10]
 	_ = x[AudioCodecIdSpeex-11]
 	_ = x[AudioCodecIdReserved-12]
 	_ = x[AudioCodecIdOpus-13]
-	_ = x[AudioCodecIdMP38kHz-14]
+	_ = x[AudioCodecIdMP3_8kHz-14]
 	_ = x[AudioCodecIdDeviceSpecific-15]
+	_ = x[AudioCodecIdAC3_ERTMP-1633889587]
+	_ = x[AudioCodecIdEAC3_ERTMP-1700998451]
+	_ = x[AudioCodecIdOpus_ERTMP-1332770163]
+	_ = x[AudioCodecIdMP3_ERTMP-778924083]
+	_ = x[AudioCodecIdFlac_ERTMP-1716281667]
+	_ = x[AudioCodecIdAAC_ERTMP-1836069985]
 }
 
-const _AudioCodecId_name = "LinearPCMPlatformEndianADPCMMP3LinearPCMLittleEndianNellymoser16kHzMonoNellymoser8kHzMonoNellymoserG711ALawG711MuLawExtendedHeaderAACSpeexReservedOpusMP38kHzDeviceSpecific"
+const (
+	_AudioCodecId_name_0 = "LinearPCMPlatformEndianADPCMMP3LinearPCMLittleEndianNellymoser16kHzMonoNellymoser8kHzMonoNellymoserG711ALawG711MuLawaudioCodecIdExtendedHeaderAACSpeexReservedOpusMP3_8kHzDeviceSpecific"
+	_AudioCodecId_name_1 = "MP3_ERTMP"
+	_AudioCodecId_name_2 = "Opus_ERTMP"
+	_AudioCodecId_name_3 = "AC3_ERTMP"
+	_AudioCodecId_name_4 = "EAC3_ERTMP"
+	_AudioCodecId_name_5 = "Flac_ERTMP"
+	_AudioCodecId_name_6 = "AAC_ERTMP"
+)
 
-var _AudioCodecId_index = [...]uint8{0, 23, 28, 31, 52, 71, 89, 99, 107, 116, 130, 133, 138, 146, 150, 157, 171}
+var (
+	_AudioCodecId_index_0 = [...]uint8{0, 23, 28, 31, 52, 71, 89, 99, 107, 116, 142, 145, 150, 158, 162, 170, 184}
+)
 
 func (i AudioCodecId) String() string {
-	idx := int(i) - 0
-	if i < 0 || idx >= len(_AudioCodecId_index)-1 {
+	switch {
+	case i <= 15:
+		return _AudioCodecId_name_0[_AudioCodecId_index_0[i]:_AudioCodecId_index_0[i+1]]
+	case i == 778924083:
+		return _AudioCodecId_name_1
+	case i == 1332770163:
+		return _AudioCodecId_name_2
+	case i == 1633889587:
+		return _AudioCodecId_name_3
+	case i == 1700998451:
+		return _AudioCodecId_name_4
+	case i == 1716281667:
+		return _AudioCodecId_name_5
+	case i == 1836069985:
+		return _AudioCodecId_name_6
+	default:
 		return "AudioCodecId(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _AudioCodecId_name[_AudioCodecId_index[idx]:_AudioCodecId_index[idx+1]]
 }

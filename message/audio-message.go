@@ -4,10 +4,11 @@ import (
 	"fmt"
 )
 
-type AudioCodecId uint8
+type AudioCodecId uint32
 
 //go:generate stringer -type=AudioCodecId -trimprefix=AudioCodecId
 const (
+	// Legacy codec IDs
 	AudioCodecIdLinearPCMPlatformEndian AudioCodecId = iota
 	AudioCodecIdADPCM
 	AudioCodecIdMP3
@@ -17,13 +18,21 @@ const (
 	AudioCodecIdNellymoser
 	AudioCodecIdG711ALaw
 	AudioCodecIdG711MuLaw
-	AudioCodecIdExtendedHeader // Defined by Enhanced RTMP
+	audioCodecIdExtendedHeader // Defined by E-RTMP, private
 	AudioCodecIdAAC
 	AudioCodecIdSpeex
 	AudioCodecIdReserved
 	AudioCodecIdOpus // Nonstandard, used by ZLMediaKit
-	AudioCodecIdMP38kHz
+	AudioCodecIdMP3_8kHz
 	AudioCodecIdDeviceSpecific
+
+	// E-RTMP codec IDs
+	AudioCodecIdAC3_ERTMP  = AudioCodecId('a'<<24 | 'c'<<16 | '-'<<8 | '3')
+	AudioCodecIdEAC3_ERTMP = AudioCodecId('e'<<24 | 'c'<<16 | '-'<<8 | '3')
+	AudioCodecIdOpus_ERTMP = AudioCodecId('O'<<24 | 'p'<<16 | 'u'<<8 | 's')
+	AudioCodecIdMP3_ERTMP  = AudioCodecId('.'<<24 | 'm'<<16 | 'p'<<8 | '3')
+	AudioCodecIdFlac_ERTMP = AudioCodecId('f'<<24 | 'L'<<16 | 'a'<<8 | 'C')
+	AudioCodecIdAAC_ERTMP  = AudioCodecId('m'<<24 | 'p'<<16 | '4'<<8 | 'a')
 )
 
 type AudioRate uint8

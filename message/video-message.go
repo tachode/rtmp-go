@@ -17,10 +17,11 @@ const (
 	VideoFrameTypeVideoInfo
 )
 
-type VideoCodecId uint8
+type VideoCodecId uint32
 
 //go:generate stringer -type=VideoCodecId -trimprefix=VideoCodecId
 const (
+	// Legacy Codec IDs
 	VideoCodecIdReserved0 VideoCodecId = iota
 	VideoCodecIdReserved1
 	VideoCodecIdSorensonH263
@@ -31,8 +32,15 @@ const (
 	VideoCodecIdAvc
 	VideoCodecIdRealH263
 	VideoCodecIdMpeg4
-
 	VideoCodecIdH264 = VideoCodecIdAvc
+
+	// E-RTMP video codecs
+	VideoCodecIdVP8_ERTMP  = VideoCodecId('v'<<24 | 'p'<<16 | '0'<<8 | '8')
+	VideoCodecIdVP9_ERTMP  = VideoCodecId('v'<<24 | 'p'<<16 | '0'<<8 | '9')
+	VideoCodecIdAV1_ERTMP  = VideoCodecId('a'<<24 | 'v'<<16 | '0'<<8 | '1')
+	VideoCodecIdAvc_ERTMP  = VideoCodecId('a'<<24 | 'v'<<16 | 'c'<<8 | '1')
+	VideoCodecIdHevc_ERTMP = VideoCodecId('h'<<24 | 'v'<<16 | 'c'<<8 | '1')
+	VideoCodecIdVVC_ERTMP  = VideoCodecId('v'<<24 | 'v'<<16 | 'c'<<8 | '1')
 )
 
 type AvcPacketType uint8

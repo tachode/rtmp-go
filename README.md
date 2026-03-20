@@ -30,8 +30,6 @@ These will be added shortly after the 1.0 release is complete
 
 The following features are not currently planned, but may be candidates for consideration in future versions if there are use cases to motivate them.
 
-☒ AMF3 Library
-
 ☒ AMF0 Object References
 
 # Future Plans

@@ -33,6 +33,7 @@ type connection struct {
 	outboundQueue       *PriorityQueue[[]byte]
 	inboundQueue        chan (message.Message)
 	outboundChunkStream map[uint32]*outboundChunkStream
+	messageContext      *message.Context
 
 	// mu protects error
 	mu  sync.RWMutex
@@ -55,6 +56,7 @@ func New(netConn net.Conn, priorityCount int, role Role) (*connection, error) {
 		outboundQueue:       NewPriorityQueue[[]byte](priorityCount, 10),
 		inboundQueue:        make(chan message.Message),
 		outboundChunkStream: make(map[uint32]*outboundChunkStream),
+		messageContext:      message.NewContext(),
 	}
 	c.CreateOutboundChunkstream(2, 0) // CS ID 2, at high priority, for command messages
 
@@ -122,7 +124,7 @@ func (c *connection) CreateOutboundChunkstream(chunkStreamId int, priority int) 
 		return ErrChunkStreamAlreadyExists
 	}
 	c.outboundChunkStream[uint32(chunkStreamId)] = &outboundChunkStream{
-		cs:       chunkstream.NewOutboundChunkStream(uint32(chunkStreamId)),
+		cs:       chunkstream.NewOutboundChunkStream(uint32(chunkStreamId), c.messageContext),
 		priority: priority,
 	}
 	return
@@ -171,7 +173,7 @@ func (c *connection) Write(b []byte) (n int, err error) {
 	if err != nil {
 		return
 	}
-	msg, err := message.Unmarshal(csHeader.Timestamp, csHeader.MessageType, csHeader.MessageStreamId, r.Bytes())
+	msg, err := c.messageContext.Unmarshal(csHeader.Timestamp, csHeader.MessageType, csHeader.MessageStreamId, r.Bytes())
 	if err != nil {
 		return
 	}
@@ -268,7 +270,7 @@ func (c *connection) readMessages() {
 		}
 		cs := chunkStream[chunkStreamId]
 		if cs == nil {
-			cs = chunkstream.NewInboundChunkStream(chunkStreamId)
+			cs = chunkstream.NewInboundChunkStream(chunkStreamId, c.messageContext)
 			chunkStream[chunkStreamId] = cs
 		}
 

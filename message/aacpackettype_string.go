@@ -17,8 +17,9 @@ const _AacPacketType_name = "SequenceHeaderRaw"
 var _AacPacketType_index = [...]uint8{0, 14, 17}
 
 func (i AacPacketType) String() string {
-	if i >= AacPacketType(len(_AacPacketType_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_AacPacketType_index)-1 {
 		return "AacPacketType(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _AacPacketType_name[_AacPacketType_index[i]:_AacPacketType_index[i+1]]
+	return _AacPacketType_name[_AacPacketType_index[idx]:_AacPacketType_index[idx+1]]
 }

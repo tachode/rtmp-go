@@ -10,22 +10,24 @@ import (
 	"github.com/tachode/rtmp-go/message"
 )
 
+var mc = message.NewContext()
+
 func TestNewInboundChunkStream(t *testing.T) {
 	chunkStreamId := uint32(3)
-	inbound := chunkstream.NewInboundChunkStream(chunkStreamId)
+	inbound := chunkstream.NewInboundChunkStream(chunkStreamId, mc)
 	assert.NotNil(t, inbound, "NewInboundChunkStream should return a non-nil Inbound")
 	assert.Equal(t, uint32(128), inbound.MaxChunkSize, "Default MaxChunkSize should be 128")
 }
 
 func TestInbound_Read_InvalidChunkStreamId(t *testing.T) {
-	inbound := chunkstream.NewInboundChunkStream(3)
+	inbound := chunkstream.NewInboundChunkStream(3, mc)
 	mockReader := bytes.NewReader([]uint8{0xa, 0x0, 0x3, 0xe8, 0x0, 0x0, 0xa, 0x9, 0x1, 0x0, 0x0, 0x0, 0x0, 0x74, 0x65, 0x73, 0x74, 0x20, 0x64, 0x61, 0x74, 0x61})
 	_, _, err := inbound.Read(mockReader)
 	assert.ErrorIs(t, err, chunkstream.ErrInvalidChunkStreamId, "Expected ErrInvalidChunkStreamId")
 }
 
 func TestInbound_Read_CompleteMessage(t *testing.T) {
-	inbound := chunkstream.NewInboundChunkStream(10)
+	inbound := chunkstream.NewInboundChunkStream(10, mc)
 
 	mockData := []uint8{0xa, 0x0, 0x3, 0xe8, 0x0, 0x0, 0xa, 0x9, 0x1, 0x0, 0x0, 0x0, 0x0, 0x74, 0x65, 0x73, 0x74, 0x20, 0x64, 0x61, 0x74, 0x61}
 	expectedMessage := &message.VideoMessage{
@@ -36,6 +38,7 @@ func TestInbound_Read_CompleteMessage(t *testing.T) {
 		},
 		Payload: []byte("test data"),
 	}
+	expectedMessage.SetContext(mc)
 
 	mockReader := bytes.NewReader(mockData)
 
@@ -48,7 +51,7 @@ func TestInbound_Read_CompleteMessage(t *testing.T) {
 }
 
 func TestInbound_Read_Multichunk_Message(t *testing.T) {
-	inbound := chunkstream.NewInboundChunkStream(10)
+	inbound := chunkstream.NewInboundChunkStream(10, mc)
 	inbound.MaxChunkSize = 4
 
 	mockData := []byte{
@@ -71,6 +74,7 @@ func TestInbound_Read_Multichunk_Message(t *testing.T) {
 		},
 		Payload: []byte("test data that exceeds chunk size"),
 	}
+	expectedMessage.SetContext(mc)
 
 	var msg message.Message
 	var n int
@@ -90,7 +94,7 @@ func TestInbound_Read_Multichunk_Message(t *testing.T) {
 
 func Test_Second_Message_Headertype_Full(t *testing.T) {
 	// Generate the bytestream
-	outbound := chunkstream.NewOutboundChunkStream(10)
+	outbound := chunkstream.NewOutboundChunkStream(10, mc)
 	msg1 := &message.VideoMessage{
 		MetadataFields: message.MetadataFields{
 			Timestamp: 1000,
@@ -124,7 +128,7 @@ func Test_Second_Message_Headertype_Full(t *testing.T) {
 	assert.Equal(t, chunkstream.HeaderTypeFull, chunkstream.HeaderType(chunks[0][0]>>6))
 
 	// Read the bytestream
-	inbound := chunkstream.NewInboundChunkStream(10)
+	inbound := chunkstream.NewInboundChunkStream(10, mc)
 	var msg message.Message
 	_, msg, err = inbound.Read(&data)
 	require.NoError(t, err)
@@ -136,7 +140,7 @@ func Test_Second_Message_Headertype_Full(t *testing.T) {
 
 func Test_Second_Message_Headertype_SameStream(t *testing.T) {
 	// Generate the bytestream
-	outbound := chunkstream.NewOutboundChunkStream(10)
+	outbound := chunkstream.NewOutboundChunkStream(10, mc)
 	msg1 := &message.VideoMessage{
 		MetadataFields: message.MetadataFields{
 			Timestamp: 1000,
@@ -170,7 +174,7 @@ func Test_Second_Message_Headertype_SameStream(t *testing.T) {
 	assert.Equal(t, chunkstream.HeaderTypeSameStream, chunkstream.HeaderType(chunks[0][0]>>6))
 
 	// Read the bytestream
-	inbound := chunkstream.NewInboundChunkStream(10)
+	inbound := chunkstream.NewInboundChunkStream(10, mc)
 	var msg message.Message
 	_, msg, err = inbound.Read(&data)
 	require.NoError(t, err)
@@ -182,7 +186,7 @@ func Test_Second_Message_Headertype_SameStream(t *testing.T) {
 
 func Test_Second_Message_Headertype_SameStreamAndLength(t *testing.T) {
 	// Generate the bytestream
-	outbound := chunkstream.NewOutboundChunkStream(10)
+	outbound := chunkstream.NewOutboundChunkStream(10, mc)
 	msg1 := &message.VideoMessage{
 		MetadataFields: message.MetadataFields{
 			Timestamp: 1000,
@@ -216,7 +220,7 @@ func Test_Second_Message_Headertype_SameStreamAndLength(t *testing.T) {
 	assert.Equal(t, chunkstream.HeaderTypeSameStreamAndLength, chunkstream.HeaderType(chunks[0][0]>>6))
 
 	// Read the bytestream
-	inbound := chunkstream.NewInboundChunkStream(10)
+	inbound := chunkstream.NewInboundChunkStream(10, mc)
 	var msg message.Message
 	_, msg, err = inbound.Read(&data)
 	require.NoError(t, err)
@@ -228,7 +232,7 @@ func Test_Second_Message_Headertype_SameStreamAndLength(t *testing.T) {
 
 func Test_Second_Message_Headertype_Continuation(t *testing.T) {
 	// Generate the bytestream
-	outbound := chunkstream.NewOutboundChunkStream(10)
+	outbound := chunkstream.NewOutboundChunkStream(10, mc)
 	msg1 := &message.VideoMessage{
 		MetadataFields: message.MetadataFields{
 			Timestamp: 1000,
@@ -262,7 +266,7 @@ func Test_Second_Message_Headertype_Continuation(t *testing.T) {
 	assert.Equal(t, chunkstream.HeaderTypeContinuation, chunkstream.HeaderType(chunks[0][0]>>6))
 
 	// Read the bytestream
-	inbound := chunkstream.NewInboundChunkStream(10)
+	inbound := chunkstream.NewInboundChunkStream(10, mc)
 	var msg message.Message
 	_, msg, err = inbound.Read(&data)
 	require.NoError(t, err)

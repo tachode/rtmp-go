@@ -18,8 +18,9 @@ const _BandwidthLimitType_name = "HardSoftDynamic"
 var _BandwidthLimitType_index = [...]uint8{0, 4, 8, 15}
 
 func (i BandwidthLimitType) String() string {
-	if i >= BandwidthLimitType(len(_BandwidthLimitType_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_BandwidthLimitType_index)-1 {
 		return "BandwidthLimitType(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _BandwidthLimitType_name[_BandwidthLimitType_index[i]:_BandwidthLimitType_index[i+1]]
+	return _BandwidthLimitType_name[_BandwidthLimitType_index[idx]:_BandwidthLimitType_index[idx+1]]
 }

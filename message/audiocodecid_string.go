@@ -31,8 +31,9 @@ const _AudioCodecId_name = "LinearPCMPlatformEndianADPCMMP3LinearPCMLittleEndian
 var _AudioCodecId_index = [...]uint8{0, 23, 28, 31, 52, 71, 89, 99, 107, 116, 130, 133, 138, 146, 150, 157, 171}
 
 func (i AudioCodecId) String() string {
-	if i >= AudioCodecId(len(_AudioCodecId_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_AudioCodecId_index)-1 {
 		return "AudioCodecId(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _AudioCodecId_name[_AudioCodecId_index[i]:_AudioCodecId_index[i+1]]
+	return _AudioCodecId_name[_AudioCodecId_index[idx]:_AudioCodecId_index[idx+1]]
 }

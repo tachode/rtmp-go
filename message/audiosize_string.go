@@ -17,8 +17,9 @@ const _AudioSize_name = "8Bit16Bit"
 var _AudioSize_index = [...]uint8{0, 4, 9}
 
 func (i AudioSize) String() string {
-	if i >= AudioSize(len(_AudioSize_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_AudioSize_index)-1 {
 		return "AudioSize(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _AudioSize_name[_AudioSize_index[i]:_AudioSize_index[i+1]]
+	return _AudioSize_name[_AudioSize_index[idx]:_AudioSize_index[idx+1]]
 }

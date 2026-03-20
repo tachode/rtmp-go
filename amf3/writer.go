@@ -30,8 +30,19 @@ func NewWriter(w io.Writer) *Writer {
 	}
 }
 
+// SetWriter changes the underlying writer without affecting reference tables.
+// This is useful when the same logical AMF 3 stream is split across multiple
+// buffers for transport (e.g., chunk streams). Pass nil to release the
+// current buffer for garbage collection.
+func (w *Writer) SetWriter(newWriter io.Writer) {
+	w.w = newWriter
+}
+
 // WriteValue writes a single AMF 3 typed value (marker + payload).
 func (w *Writer) WriteValue(value any) error {
+	if w.w == nil {
+		return ErrNilWriter
+	}
 	if value == nil {
 		return w.writeMarker(NullMarker)
 	}

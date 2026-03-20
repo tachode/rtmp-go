@@ -25,8 +25,9 @@ const _VideoCodecId_name = "Reserved0Reserved1SorensonH263Screen1On2VP6On2VP6Alp
 var _VideoCodecId_index = [...]uint8{0, 9, 18, 30, 37, 43, 54, 61, 64, 72, 77}
 
 func (i VideoCodecId) String() string {
-	if i >= VideoCodecId(len(_VideoCodecId_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_VideoCodecId_index)-1 {
 		return "VideoCodecId(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _VideoCodecId_name[_VideoCodecId_index[i]:_VideoCodecId_index[i+1]]
+	return _VideoCodecId_name[_VideoCodecId_index[idx]:_VideoCodecId_index[idx+1]]
 }

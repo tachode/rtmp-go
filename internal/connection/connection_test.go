@@ -126,7 +126,10 @@ func TestReadMessage(t *testing.T) {
 	}
 	msg, err := c.ReadMessage()
 	assert.NoError(t, err)
-	assert.Equal(t, &message.AbortMessage{ChunkStreamId: 1234, MetadataFields: message.MetadataFields{Length: 4}}, msg)
+	abort, ok := msg.(*message.AbortMessage)
+	assert.True(t, ok)
+	assert.Equal(t, uint32(1234), abort.ChunkStreamId)
+	assert.Equal(t, uint32(4), abort.Metadata().Length)
 }
 
 func TestWriteMessageToUnsetStreamId(t *testing.T) {

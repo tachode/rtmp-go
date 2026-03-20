@@ -19,8 +19,9 @@ const _AudioRate_name = "5.5kHz11kHz22kHz44kHz"
 var _AudioRate_index = [...]uint8{0, 6, 11, 16, 21}
 
 func (i AudioRate) String() string {
-	if i >= AudioRate(len(_AudioRate_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_AudioRate_index)-1 {
 		return "AudioRate(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _AudioRate_name[_AudioRate_index[i]:_AudioRate_index[i+1]]
+	return _AudioRate_name[_AudioRate_index[idx]:_AudioRate_index[idx+1]]
 }

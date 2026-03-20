@@ -29,7 +29,7 @@ func TestUnmarshal(t *testing.T) {
 	message.RegisterType(new(MockMessage))
 
 	t.Run("unknown message type", func(t *testing.T) {
-		msg, err := message.Unmarshal(123, 99, 456, []byte{1, 2, 3})
+		msg, err := message.NewContext().Unmarshal(123, 99, 456, []byte{1, 2, 3})
 		assert.NoError(t, err)
 		assert.NotNil(t, msg)
 		assert.Equal(t, message.Type(99), msg.Type())
@@ -40,7 +40,7 @@ func TestUnmarshal(t *testing.T) {
 	})
 
 	t.Run("successful unmarshal", func(t *testing.T) {
-		msg, err := message.Unmarshal(123, 1, 456, []byte{1, 2, 3})
+		msg, err := message.NewContext().Unmarshal(123, 1, 456, []byte{1, 2, 3})
 		assert.NoError(t, err)
 		assert.NotNil(t, msg)
 		assert.Equal(t, message.Type(1), msg.Type())

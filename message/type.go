@@ -14,10 +14,10 @@ const (
 	TypeAudioMessage              Type = 8
 	TypeVideoMessage              Type = 9
 	TypeAmf3DataMessage           Type = 15 // Not implemented
-	TypeAmf3SharedObjectMessage   Type = 16 // Reserved, not defined in RTMP spec
+	TypeAmf3SharedObjectMessage   Type = 16 // Not Implemented
 	TypeAmf3CommandMessage        Type = 17 // Not implemented
 	TypeAmf0DataMessage           Type = 18
-	TypeAmf0SharedObjectMessage   Type = 19 // Reserved, not defined in RTMP spec
+	TypeAmf0SharedObjectMessage   Type = 19
 	TypeAmf0CommandMessage        Type = 20
 	TypeAggregateMessage          Type = 22 // TODO
 	TypeGoAway                    Type = 32 // Defined in https://github.com/facebookarchive/rtmp-go-away
@@ -35,4 +35,14 @@ const (
 	TypeCommand           Type = TypeAmf0CommandMessage
 	TypeUdp               Type = 0x15 // Not mentioned in the RTMP spec
 	TypePresent           Type = 0x17 // Not mentioned in the RTMP spec
+
+	// Aliases based on ffmpeg's implementation
+	TypeBytesRead   Type = TypeAcknowledgement
+	TypeFlexStream  Type = TypeAmf3DataMessage
+	TypeFlexObject  Type = TypeAmf3SharedObjectMessage
+	TypeFlexMessage Type = TypeAmf3CommandMessage
+	TypeNotify      Type = TypeAmf0DataMessage
+	TypeSharedObj   Type = TypeAmf0SharedObjectMessage
+	TypeInvoke      Type = TypeAmf0CommandMessage
+	TypeMetadata    Type = TypeAggregateMessage
 )

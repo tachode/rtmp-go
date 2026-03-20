@@ -21,8 +21,9 @@ const _VideoFrameType_name = "InvalidKeyframeInterframeDisposableInterframeGener
 var _VideoFrameType_index = [...]uint8{0, 7, 15, 25, 45, 62, 71}
 
 func (i VideoFrameType) String() string {
-	if i >= VideoFrameType(len(_VideoFrameType_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_VideoFrameType_index)-1 {
 		return "VideoFrameType(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _VideoFrameType_name[_VideoFrameType_index[i]:_VideoFrameType_index[i+1]]
+	return _VideoFrameType_name[_VideoFrameType_index[idx]:_VideoFrameType_index[idx+1]]
 }

@@ -11,13 +11,13 @@ import (
 )
 
 func TestNewOutboundChunkStream(t *testing.T) {
-	outbound := chunkstream.NewOutboundChunkStream(10)
+	outbound := chunkstream.NewOutboundChunkStream(10, mc)
 	assert.NotNil(t, outbound)
 	assert.Equal(t, uint32(128), outbound.MaxChunkSize)
 }
 
 func TestOutboundMarshal_SingleChunk(t *testing.T) {
-	outbound := chunkstream.NewOutboundChunkStream(10)
+	outbound := chunkstream.NewOutboundChunkStream(10, mc)
 	msg := &message.VideoMessage{
 		MetadataFields: message.MetadataFields{
 			Timestamp: 1000,
@@ -46,7 +46,7 @@ func TestOutboundMarshal_SingleChunk(t *testing.T) {
 }
 
 func TestOutboundMarshal_MultipleChunks(t *testing.T) {
-	outbound := chunkstream.NewOutboundChunkStream(10)
+	outbound := chunkstream.NewOutboundChunkStream(10, mc)
 	outbound.MaxChunkSize = 4
 	msg := &message.VideoMessage{
 		MetadataFields: message.MetadataFields{
@@ -74,7 +74,7 @@ func TestOutboundMarshal_MultipleChunks(t *testing.T) {
 }
 
 func TestOutboundMarshal_HeaderOptimization_SameStream(t *testing.T) {
-	outbound := chunkstream.NewOutboundChunkStream(10)
+	outbound := chunkstream.NewOutboundChunkStream(10, mc)
 	msg1 := &message.VideoMessage{
 		MetadataFields: message.MetadataFields{
 			Timestamp: 1000,
@@ -101,7 +101,7 @@ func TestOutboundMarshal_HeaderOptimization_SameStream(t *testing.T) {
 }
 
 func TestOutboundMarshal_HeaderOptimization_SameStreamAndLength(t *testing.T) {
-	outbound := chunkstream.NewOutboundChunkStream(10)
+	outbound := chunkstream.NewOutboundChunkStream(10, mc)
 	msg1 := &message.VideoMessage{
 		MetadataFields: message.MetadataFields{
 			Timestamp: 1000,
@@ -128,7 +128,7 @@ func TestOutboundMarshal_HeaderOptimization_SameStreamAndLength(t *testing.T) {
 }
 
 func TestOutboundMarshal_HeaderOptimization_Continuation(t *testing.T) {
-	outbound := chunkstream.NewOutboundChunkStream(10)
+	outbound := chunkstream.NewOutboundChunkStream(10, mc)
 	msg1 := &message.VideoMessage{
 		MetadataFields: message.MetadataFields{
 			Timestamp: 1000,

@@ -147,13 +147,14 @@ func (h *ChunkHeader) Read(r io.Reader) (n int, err error) {
 	n += m
 	h.Type = HeaderType(basicHeader[0] >> 6)
 	h.ChunkStreamId = uint32(basicHeader[0] & 0x3F)
-	if h.ChunkStreamId == 0 {
+	switch h.ChunkStreamId {
+	case 0:
 		if m, err = r.Read(basicHeader[1:2]); err != nil {
 			return
 		}
 		n += m
 		h.ChunkStreamId = 64 + uint32(basicHeader[1])
-	} else if h.ChunkStreamId == 1 {
+	case 1:
 		if m, err = r.Read(basicHeader[1:3]); err != nil {
 			return
 		}

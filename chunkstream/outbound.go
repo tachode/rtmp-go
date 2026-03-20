@@ -12,12 +12,14 @@ type Outbound struct {
 	chunkStreamId   uint32
 	lastTimestamp   uint32
 	lastChunkHeader *ChunkHeader
+	messageContext  *message.Context
 }
 
-func NewOutboundChunkStream(chunkStreamId uint32) *Outbound {
+func NewOutboundChunkStream(chunkStreamId uint32, messageContext *message.Context) *Outbound {
 	return &Outbound{
-		MaxChunkSize:  128,
-		chunkStreamId: chunkStreamId,
+		MaxChunkSize:   128,
+		chunkStreamId:  chunkStreamId,
+		messageContext: messageContext,
 	}
 }
 
@@ -26,7 +28,7 @@ func (o *Outbound) Marshal(msg message.Message) ([][]byte, error) {
 	if o.chunkStreamId < 2 || o.chunkStreamId > 65599 {
 		return nil, ErrInvalidChunkStreamId
 	}
-	data, err := msg.Marshal()
+	data, err := o.messageContext.Marshal(msg)
 	if err != nil {
 		return nil, err
 	}

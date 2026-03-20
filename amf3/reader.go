@@ -21,8 +21,19 @@ func NewReader(r io.Reader) *Reader {
 	return &Reader{r: r}
 }
 
+// SetReader changes the underlying reader without affecting reference tables.
+// This is useful when the same logical AMF 3 stream is split across multiple
+// buffers for transport (e.g., chunk streams). Pass nil to release the
+// current buffer for garbage collection.
+func (r *Reader) SetReader(newReader io.Reader) {
+	r.r = newReader
+}
+
 // ReadValue reads a single AMF 3 typed value (marker + payload).
 func (r *Reader) ReadValue() (any, error) {
+	if r.r == nil {
+		return nil, ErrNilReader
+	}
 	var marker [1]byte
 	_, err := io.ReadFull(r.r, marker[:])
 	if err != nil {

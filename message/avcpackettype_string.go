@@ -18,8 +18,9 @@ const _AvcPacketType_name = "SequenceHeaderNALUEndOfSequence"
 var _AvcPacketType_index = [...]uint8{0, 14, 18, 31}
 
 func (i AvcPacketType) String() string {
-	if i >= AvcPacketType(len(_AvcPacketType_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_AvcPacketType_index)-1 {
 		return "AvcPacketType(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _AvcPacketType_name[_AvcPacketType_index[i]:_AvcPacketType_index[i+1]]
+	return _AvcPacketType_name[_AvcPacketType_index[idx]:_AvcPacketType_index[idx+1]]
 }

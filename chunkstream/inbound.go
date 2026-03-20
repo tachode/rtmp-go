@@ -7,19 +7,21 @@ import (
 )
 
 type Inbound struct {
-	MaxChunkSize  uint32
-	chunkStreamId uint32
-	data          []byte
-	unreadData    []byte
-	chunkHeader   ChunkHeader
-	streamTime    uint32
+	MaxChunkSize   uint32
+	chunkStreamId  uint32
+	data           []byte
+	unreadData     []byte
+	chunkHeader    ChunkHeader
+	streamTime     uint32
+	messageContext *message.Context
 }
 
-func NewInboundChunkStream(chunkStreamId uint32) *Inbound {
+func NewInboundChunkStream(chunkStreamId uint32, messageContext *message.Context) *Inbound {
 	return &Inbound{
 		// RTMP Specification §5.4.1: "The maximum chunk size defaults to 128 bytes
-		MaxChunkSize:  128,
-		chunkStreamId: chunkStreamId,
+		MaxChunkSize:   128,
+		chunkStreamId:  chunkStreamId,
+		messageContext: messageContext,
 	}
 }
 
@@ -56,7 +58,7 @@ func (i *Inbound) Read(r io.Reader) (n int, msg message.Message, err error) {
 
 	// Once we've read a complete message, parse it and return it
 	if len(i.unreadData) == 0 {
-		msg, err = message.Unmarshal(i.streamTime, i.chunkHeader.MessageType, i.chunkHeader.MessageStreamId, i.data)
+		msg, err = i.messageContext.Unmarshal(i.streamTime, i.chunkHeader.MessageType, i.chunkHeader.MessageStreamId, i.data)
 		i.data = nil
 		i.unreadData = nil
 	}

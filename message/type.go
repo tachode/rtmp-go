@@ -13,9 +13,9 @@ const (
 	TypeVirtualControl            Type = 7 // Described as "used between edge server and origin server" but not defined
 	TypeAudioMessage              Type = 8
 	TypeVideoMessage              Type = 9
-	TypeAmf3DataMessage           Type = 15 // Not implemented
-	TypeAmf3SharedObjectMessage   Type = 16 // Not Implemented
-	TypeAmf3CommandMessage        Type = 17 // Not implemented
+	TypeAmf3DataMessage           Type = 15
+	TypeAmf3SharedObjectMessage   Type = 16
+	TypeAmf3CommandMessage        Type = 17
 	TypeAmf0DataMessage           Type = 18
 	TypeAmf0SharedObjectMessage   Type = 19
 	TypeAmf0CommandMessage        Type = 20

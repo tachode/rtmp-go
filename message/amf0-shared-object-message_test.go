@@ -149,29 +149,28 @@ func TestAmf0SharedObjectMessage_String(t *testing.T) {
 	assert.Contains(t, s, "Version=1")
 }
 
-func TestSharedObjectEvent_DecodeEventValue(t *testing.T) {
-	// Encode "key" -> amf0.String("val") as event data
-	eventData, err := message.EncodeEventValue("key", amf0.String("val"))
+func TestAmf0SharedObjectMessage_DecodeEvent(t *testing.T) {
+	msg := message.Amf0SharedObjectMessage{}
+	err := msg.AddEvent(message.SharedObjectChange, "key", amf0.String("val"))
 	assert.NoError(t, err)
 
-	e := message.SharedObjectEvent{
-		Type: message.SharedObjectChange,
-		Data: eventData,
-	}
-
-	name, value, err := e.DecodeEventValue()
+	eventType, name, value, err := msg.DecodeEvent(0)
 	assert.NoError(t, err)
+	assert.Equal(t, message.SharedObjectChange, eventType)
 	assert.Equal(t, "key", name)
 	assert.Equal(t, amf0.String("val"), value)
 }
 
-func TestEncodeEventValue_NameOnly(t *testing.T) {
-	data, err := message.EncodeEventValue("slot", nil)
+func TestAmf0SharedObjectMessage_AddEvent_NameOnly(t *testing.T) {
+	msg := message.Amf0SharedObjectMessage{}
+	err := msg.AddEvent(message.SharedObjectRemove, "slot", nil)
 	assert.NoError(t, err)
-	// Should be: uint16(4) + "slot"
-	assert.Equal(t, 2+4, len(data))
-	assert.Equal(t, uint16(4), binary.BigEndian.Uint16(data[0:2]))
-	assert.Equal(t, "slot", string(data[2:]))
+	assert.Equal(t, 1, len(msg.Events))
+	assert.Equal(t, message.SharedObjectRemove, msg.Events[0].Type)
+	// Data should be: uint16(4) + "slot"
+	assert.Equal(t, 2+4, len(msg.Events[0].Data))
+	assert.Equal(t, uint16(4), binary.BigEndian.Uint16(msg.Events[0].Data[0:2]))
+	assert.Equal(t, "slot", string(msg.Events[0].Data[2:]))
 }
 
 func TestAmf0SharedObjectMessage_Unmarshal_ViaRegistry(t *testing.T) {

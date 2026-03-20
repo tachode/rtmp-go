@@ -52,82 +52,72 @@ func (m Amf0SharedObjectMessage) Type() Type {
 }
 
 func (m Amf0SharedObjectMessage) Marshal() ([]byte, error) {
-	// Name as AMF0 string (uint16 length prefix + UTF-8)
-	nameBytes := []byte(m.Name)
-	size := 2 + len(nameBytes) + 4 + 8 // name-length + name + version + flags
-	for _, e := range m.Events {
-		size += 1 + 4 + len(e.Data) // type + data-length + data
+	out := &bytes.Buffer{}
+
+	// Shared Object Name (AMF0 string body: uint16 length + UTF-8)
+	if err := amf0.String(m.Name).Write(out); err != nil {
+		return nil, fmt.Errorf("could not write shared object name: %w", err)
 	}
 
-	out := make([]byte, 0, size)
-
-	// Shared Object Name (AMF0-style uint16-length-prefixed string)
-	out = binary.BigEndian.AppendUint16(out, uint16(len(nameBytes)))
-	out = append(out, nameBytes...)
-
 	// Current Version
-	out = binary.BigEndian.AppendUint32(out, m.CurrentVersion)
+	if err := binary.Write(out, binary.BigEndian, m.CurrentVersion); err != nil {
+		return nil, fmt.Errorf("could not write shared object version: %w", err)
+	}
 
 	// Flags (8 bytes)
-	out = append(out, m.Flags[:]...)
+	out.Write(m.Flags[:])
 
 	// Events
 	for _, e := range m.Events {
-		out = append(out, byte(e.Type))
-		out = binary.BigEndian.AppendUint32(out, uint32(len(e.Data)))
-		out = append(out, e.Data...)
+		out.WriteByte(byte(e.Type))
+		if err := binary.Write(out, binary.BigEndian, uint32(len(e.Data))); err != nil {
+			return nil, fmt.Errorf("could not write shared object event length: %w", err)
+		}
+		out.Write(e.Data)
 	}
 
-	return out, nil
+	return out.Bytes(), nil
 }
 
 func (m *Amf0SharedObjectMessage) Unmarshal(data []byte) error {
-	if len(data) < 2 {
-		return fmt.Errorf("shared object message: %w", ErrShortMessage)
-	}
+	buf := bytes.NewBuffer(data)
 
-	// Read shared object name (uint16-length-prefixed string)
-	nameLen := int(binary.BigEndian.Uint16(data[0:2]))
-	data = data[2:]
-	if len(data) < nameLen {
-		return fmt.Errorf("shared object message name: %w", ErrShortMessage)
+	// Read shared object name (AMF0 string body: uint16 length + UTF-8)
+	var name amf0.String
+	if err := name.Read(buf); err != nil {
+		return fmt.Errorf("shared object message name: %w", err)
 	}
-	m.Name = string(data[:nameLen])
-	data = data[nameLen:]
+	m.Name = string(name)
 
 	// Read current version (uint32)
-	if len(data) < 4 {
-		return fmt.Errorf("shared object message version: %w", ErrShortMessage)
+	if err := binary.Read(buf, binary.BigEndian, &m.CurrentVersion); err != nil {
+		return fmt.Errorf("shared object message version: %w", err)
 	}
-	m.CurrentVersion = binary.BigEndian.Uint32(data[0:4])
-	data = data[4:]
 
 	// Read flags (8 bytes)
-	if len(data) < 8 {
+	if buf.Len() < 8 {
 		return fmt.Errorf("shared object message flags: %w", ErrShortMessage)
 	}
-	copy(m.Flags[:], data[0:8])
-	data = data[8:]
+	copy(m.Flags[:], buf.Next(8))
 
 	// Read events
 	m.Events = nil
-	for len(data) > 0 {
-		if len(data) < 5 { // 1 byte type + 4 bytes length
+	for buf.Len() > 0 {
+		if buf.Len() < 5 { // 1 byte type + 4 bytes length
 			return fmt.Errorf("shared object event header: %w", ErrShortMessage)
 		}
-		eventType := SharedObjectEventType(data[0])
-		eventDataLen := int(binary.BigEndian.Uint32(data[1:5]))
-		data = data[5:]
+		eventType, _ := buf.ReadByte()
+		var eventDataLen uint32
+		binary.Read(buf, binary.BigEndian, &eventDataLen)
 
-		if len(data) < eventDataLen {
+		if buf.Len() < int(eventDataLen) {
 			return fmt.Errorf("shared object event data: %w", ErrShortMessage)
 		}
 		eventData := make([]byte, eventDataLen)
-		copy(eventData, data[:eventDataLen])
-		data = data[eventDataLen:]
+		copy(eventData, buf.Next(int(eventDataLen)))
 
 		m.Events = append(m.Events, SharedObjectEvent{
-			Type: eventType,
+			Type: SharedObjectEventType(eventType),
 			Data: eventData,
 		})
 	}
@@ -147,43 +137,42 @@ func (e SharedObjectEvent) String() string {
 
 // Helper methods to encode/decode event data for common event patterns.
 
-// DecodeEventValue decodes event data as a name-value pair (name as AMF0 string
-// prefix, value as AMF0 value). Used by Change, RequestChange, Success events.
-func (e SharedObjectEvent) DecodeEventValue() (name string, value any, err error) {
-	if len(e.Data) < 2 {
-		return "", nil, fmt.Errorf("shared object event data too short for name-value pair")
-	}
+// DecodeEvent decodes the event at index i, returning its type and the
+// name-value pair (name as AMF0 string body, value as AMF0 value). Used by
+// Change, RequestChange, Success events.
+func (m Amf0SharedObjectMessage) DecodeEvent(i int) (eventType SharedObjectEventType, name string, value any, err error) {
+	eventType = m.Events[i].Type
+	buf := bytes.NewBuffer(m.Events[i].Data)
 
-	nameLen := int(binary.BigEndian.Uint16(e.Data[0:2]))
-	if len(e.Data) < 2+nameLen {
-		return "", nil, fmt.Errorf("shared object event data too short for name")
+	var nameStr amf0.String
+	if err := nameStr.Read(buf); err != nil {
+		return eventType, "", nil, fmt.Errorf("could not read shared object event name: %w", err)
 	}
-	name = string(e.Data[2 : 2+nameLen])
+	name = string(nameStr)
 
-	remaining := e.Data[2+nameLen:]
-	if len(remaining) > 0 {
-		value, err = amf0.Read(bytes.NewReader(remaining))
+	if buf.Len() > 0 {
+		value, err = amf0.Read(buf)
 		if err != nil {
-			return name, nil, fmt.Errorf("could not read shared object event value: %w", err)
+			return eventType, name, nil, fmt.Errorf("could not read shared object event value: %w", err)
 		}
 	}
-	return name, value, nil
+	return eventType, name, value, nil
 }
 
-// EncodeEventValue encodes a name-value pair as event data.
-func EncodeEventValue(name string, value any) ([]byte, error) {
-	nameBytes := []byte(name)
-	out := make([]byte, 0, 2+len(nameBytes)+16)
-	out = binary.BigEndian.AppendUint16(out, uint16(len(nameBytes)))
-	out = append(out, nameBytes...)
+// AddEvent encodes a name-value pair as event data using AMF0 and appends it
+// to the Events slice.
+func (m *Amf0SharedObjectMessage) AddEvent(eventType SharedObjectEventType, name string, value any) error {
+	out := &bytes.Buffer{}
+
+	if err := amf0.String(name).Write(out); err != nil {
+		return fmt.Errorf("could not write shared object event name: %w", err)
+	}
 
 	if value != nil {
-		var buf bytes.Buffer
-		err := amf0.Write(&buf, value)
-		if err != nil {
-			return nil, fmt.Errorf("could not write shared object event value: %w", err)
+		if err := amf0.Write(out, value); err != nil {
+			return fmt.Errorf("could not write shared object event value: %w", err)
 		}
-		out = append(out, buf.Bytes()...)
 	}
-	return out, nil
+	m.Events = append(m.Events, SharedObjectEvent{Type: eventType, Data: out.Bytes()})
+	return nil
 }

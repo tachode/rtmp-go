@@ -36,7 +36,10 @@ func TestInbound_Read_CompleteMessage(t *testing.T) {
 			StreamId:  1,
 			Length:    10,
 		},
-		Payload: []byte("test data"),
+		PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+		Tracks: []message.VideoTrack{{
+			Payload: []byte("test data"),
+		}},
 	}
 	expectedMessage.SetContext(mc)
 
@@ -72,7 +75,10 @@ func TestInbound_Read_Multichunk_Message(t *testing.T) {
 			StreamId:  1,
 			Length:    34,
 		},
-		Payload: []byte("test data that exceeds chunk size"),
+		PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+		Tracks: []message.VideoTrack{{
+			Payload: []byte("test data that exceeds chunk size"),
+		}},
 	}
 	expectedMessage.SetContext(mc)
 
@@ -101,7 +107,10 @@ func Test_Second_Message_Headertype_Full(t *testing.T) {
 			StreamId:  1,
 			Length:    14,
 		},
-		Payload: []byte("first message"),
+		PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+		Tracks: []message.VideoTrack{{
+			Payload: []byte("first message"),
+		}},
 	}
 	msg2 := &message.VideoMessage{
 		MetadataFields: message.MetadataFields{
@@ -109,7 +118,10 @@ func Test_Second_Message_Headertype_Full(t *testing.T) {
 			StreamId:  2,
 			Length:    15,
 		},
-		Payload: []byte("second message"),
+		PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+		Tracks: []message.VideoTrack{{
+			Payload: []byte("second message"),
+		}},
 	}
 
 	data := bytes.Buffer{}
@@ -147,7 +159,10 @@ func Test_Second_Message_Headertype_SameStream(t *testing.T) {
 			StreamId:  1,
 			Length:    14,
 		},
-		Payload: []byte("first message"),
+		PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+		Tracks: []message.VideoTrack{{
+			Payload: []byte("first message"),
+		}},
 	}
 	msg2 := &message.VideoMessage{
 		MetadataFields: message.MetadataFields{
@@ -155,7 +170,10 @@ func Test_Second_Message_Headertype_SameStream(t *testing.T) {
 			StreamId:  1,
 			Length:    15,
 		},
-		Payload: []byte("second message"),
+		PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+		Tracks: []message.VideoTrack{{
+			Payload: []byte("second message"),
+		}},
 	}
 
 	data := bytes.Buffer{}
@@ -193,7 +211,10 @@ func Test_Second_Message_Headertype_SameStreamAndLength(t *testing.T) {
 			StreamId:  1,
 			Length:    15,
 		},
-		Payload: []byte("first  message"),
+		PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+		Tracks: []message.VideoTrack{{
+			Payload: []byte("first  message"),
+		}},
 	}
 	msg2 := &message.VideoMessage{
 		MetadataFields: message.MetadataFields{
@@ -201,7 +222,10 @@ func Test_Second_Message_Headertype_SameStreamAndLength(t *testing.T) {
 			StreamId:  1,
 			Length:    15,
 		},
-		Payload: []byte("second message"),
+		PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+		Tracks: []message.VideoTrack{{
+			Payload: []byte("second message"),
+		}},
 	}
 
 	data := bytes.Buffer{}
@@ -239,7 +263,10 @@ func Test_Second_Message_Headertype_Continuation(t *testing.T) {
 			StreamId:  1,
 			Length:    15,
 		},
-		Payload: []byte("first  message"),
+		PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+		Tracks: []message.VideoTrack{{
+			Payload: []byte("first  message"),
+		}},
 	}
 	msg2 := &message.VideoMessage{
 		MetadataFields: message.MetadataFields{
@@ -247,7 +274,10 @@ func Test_Second_Message_Headertype_Continuation(t *testing.T) {
 			StreamId:  1,
 			Length:    15,
 		},
-		Payload: []byte("second message"),
+		PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+		Tracks: []message.VideoTrack{{
+			Payload: []byte("second message"),
+		}},
 	}
 
 	data := bytes.Buffer{}

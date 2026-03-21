@@ -13,12 +13,12 @@ func _() {
 	_ = x[VideoFrameTypeInterframe-2]
 	_ = x[VideoFrameTypeDisposableInterframe-3]
 	_ = x[VideoFrameTypeGeneratedKeyframe-4]
-	_ = x[VideoFrameTypeVideoInfo-5]
+	_ = x[VideoFrameTypeVideoCommand-5]
 }
 
-const _VideoFrameType_name = "InvalidKeyframeInterframeDisposableInterframeGeneratedKeyframeVideoInfo"
+const _VideoFrameType_name = "InvalidKeyframeInterframeDisposableInterframeGeneratedKeyframeVideoCommand"
 
-var _VideoFrameType_index = [...]uint8{0, 7, 15, 25, 45, 62, 71}
+var _VideoFrameType_index = [...]uint8{0, 7, 15, 25, 45, 62, 74}
 
 func (i VideoFrameType) String() string {
 	idx := int(i) - 0

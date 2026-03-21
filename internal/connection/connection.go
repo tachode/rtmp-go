@@ -253,24 +253,25 @@ func (c *connection) readMessages() {
 	bytesRead := 0
 	lastAck := 0
 	remoteWindowSize := 2_500_000 // Everyone seems to use this value as the default
+	currentChunkSize := uint32(128)
 	for {
 		chunkStreamId := uint32(0)
 		basicHeader, err := r.Peek(3)
 		if err != nil {
 			c.setError("peek", err)
 		}
-		basicHeader[0] &= 0x3F
-		switch basicHeader[0] {
+		switch basicHeader[0] & 0x3F {
 		case 0:
 			chunkStreamId = uint32(basicHeader[1] + 64)
 		case 1:
 			chunkStreamId = (uint32(basicHeader[1]) << 8) + uint32(basicHeader[2]) + 64
 		default:
-			chunkStreamId = uint32(basicHeader[0])
+			chunkStreamId = uint32(basicHeader[0] & 0x3F)
 		}
 		cs := chunkStream[chunkStreamId]
 		if cs == nil {
 			cs = chunkstream.NewInboundChunkStream(chunkStreamId, c.messageContext)
+			cs.MaxChunkSize = currentChunkSize
 			chunkStream[chunkStreamId] = cs
 		}
 
@@ -280,16 +281,13 @@ func (c *connection) readMessages() {
 		if err != nil {
 			c.setError("read", err)
 		}
-		if bytesRead-lastAck > (remoteWindowSize / 2) {
-			c.WriteMessage(&message.Acknowledgement{SequenceNumber: uint32(bytesRead)}, 2)
-			lastAck = bytesRead
-		}
 
 		if msg != nil {
 			switch m := msg.(type) {
 			case *message.SetChunkSize:
+				currentChunkSize = m.ChunkSize
 				for _, cs := range chunkStream {
-					cs.MaxChunkSize = m.ChunkSize
+					cs.MaxChunkSize = currentChunkSize
 				}
 			case *message.UserControlMessage:
 				if m.Event == message.UserControlPingRequest {
@@ -300,6 +298,11 @@ func (c *connection) readMessages() {
 				// TODO -- we may need to act on other message types here
 			}
 			c.inboundQueue <- msg
+		}
+
+		if bytesRead-lastAck > (remoteWindowSize / 2) {
+			c.WriteMessage(&message.Acknowledgement{SequenceNumber: uint32(bytesRead)}, 2)
+			lastAck = bytesRead
 		}
 
 	}

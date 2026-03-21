@@ -23,7 +23,10 @@ func TestOutboundMarshal_SingleChunk(t *testing.T) {
 			Timestamp: 1000,
 			StreamId:  1,
 		},
-		Payload: []byte("test data"),
+		PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+		Tracks: []message.VideoTrack{{
+			Payload: []byte("test data"),
+		}},
 	}
 	msgBytes, err := msg.Marshal()
 	require.NoError(t, err)
@@ -53,7 +56,10 @@ func TestOutboundMarshal_MultipleChunks(t *testing.T) {
 			Timestamp: 1000,
 			StreamId:  1,
 		},
-		Payload: []byte("test data that exceeds chunk size"),
+		PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+		Tracks: []message.VideoTrack{{
+			Payload: []byte("test data that exceeds chunk size"),
+		}},
 	}
 	msgBytes, err := msg.Marshal()
 	require.NoError(t, err)
@@ -80,14 +86,20 @@ func TestOutboundMarshal_HeaderOptimization_SameStream(t *testing.T) {
 			Timestamp: 1000,
 			StreamId:  1,
 		},
-		Payload: []byte("first message"),
+		PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+		Tracks: []message.VideoTrack{{
+			Payload: []byte("first message"),
+		}},
 	}
 	msg2 := &message.VideoMessage{
 		MetadataFields: message.MetadataFields{
 			Timestamp: 2000,
 			StreamId:  1,
 		},
-		Payload: []byte("second message"),
+		PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+		Tracks: []message.VideoTrack{{
+			Payload: []byte("second message"),
+		}},
 	}
 
 	_, err := outbound.Marshal(msg1)
@@ -107,14 +119,20 @@ func TestOutboundMarshal_HeaderOptimization_SameStreamAndLength(t *testing.T) {
 			Timestamp: 1000,
 			StreamId:  1,
 		},
-		Payload: []byte("first--message"),
+		PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+		Tracks: []message.VideoTrack{{
+			Payload: []byte("first--message"),
+		}},
 	}
 	msg2 := &message.VideoMessage{
 		MetadataFields: message.MetadataFields{
 			Timestamp: 1000,
 			StreamId:  1,
 		},
-		Payload: []byte("second message"),
+		PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+		Tracks: []message.VideoTrack{{
+			Payload: []byte("second message"),
+		}},
 	}
 
 	_, err := outbound.Marshal(msg1)
@@ -134,14 +152,20 @@ func TestOutboundMarshal_HeaderOptimization_Continuation(t *testing.T) {
 			Timestamp: 1000,
 			StreamId:  1,
 		},
-		Payload: []byte("first--message"),
+		PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+		Tracks: []message.VideoTrack{{
+			Payload: []byte("first--message"),
+		}},
 	}
 	msg2 := &message.VideoMessage{
 		MetadataFields: message.MetadataFields{
 			Timestamp: 2000,
 			StreamId:  1,
 		},
-		Payload: []byte("second message"),
+		PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+		Tracks: []message.VideoTrack{{
+			Payload: []byte("second message"),
+		}},
 	}
 
 	_, err := outbound.Marshal(msg1)

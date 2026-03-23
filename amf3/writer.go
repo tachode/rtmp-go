@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"reflect"
 	"time"
 )
 
@@ -81,6 +82,23 @@ func (w *Writer) WriteValue(value any) error {
 		value = Date(v)
 	case []byte:
 		value = ByteArray(v)
+	default:
+		// Handle named types whose underlying type is string or numeric
+		// (e.g., type Level string, type EnumName int)
+		// Only apply if the value doesn't already implement Value.
+		if _, ok := value.(Value); !ok {
+			rv := reflect.ValueOf(value)
+			switch rv.Kind() {
+			case reflect.String:
+				value = String(rv.String())
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				value = w.intOrDouble(rv.Int())
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				value = w.uintOrDouble(rv.Uint())
+			case reflect.Float32, reflect.Float64:
+				value = Double(rv.Float())
+			}
+		}
 	}
 
 	if v, ok := value.(Value); ok {

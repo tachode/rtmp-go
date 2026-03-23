@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"reflect"
 	"time"
 )
 
@@ -48,6 +49,28 @@ func Write(w io.Writer, value any) error {
 		}
 	case time.Time:
 		value = Date(v)
+	default:
+		// Handle named types whose underlying type is string or numeric
+		// (e.g., type Level string, type EnumName int)
+		// Only apply if the value doesn't already implement Value.
+		if _, ok := value.(Value); !ok {
+			rv := reflect.ValueOf(value)
+			switch rv.Kind() {
+			case reflect.String:
+				s := rv.String()
+				if len(s) < 0x10000 {
+					value = String(s)
+				} else {
+					value = LongString(s)
+				}
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				value = Number(rv.Int())
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				value = Number(rv.Uint())
+			case reflect.Float32, reflect.Float64:
+				value = Number(rv.Float())
+			}
+		}
 	}
 
 	if v, ok := value.(Value); ok {

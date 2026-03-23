@@ -96,5 +96,5 @@ func (m *UserControlMessage) Unmarshal(data []byte) error {
 }
 
 func (m UserControlMessage) String() string {
-	return fmt.Sprintf("%v: %+v Event=%d(%v)", m.Type(), m.MetadataFields, m.Event, m.Parameters)
+	return fmt.Sprintf("%v: %+v Event=%s(%v)", m.Type(), m.MetadataFields, m.Event, m.Parameters)
 }

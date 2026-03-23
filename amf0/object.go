@@ -11,6 +11,11 @@ func init() { RegisterType(new(Object)) }
 
 func (v Object) Type() Type { return ObjectMarker }
 
+func (v Object) Get(key string) (obj any, found bool) {
+	obj, found = v[key]
+	return
+}
+
 func (v *Object) Read(r io.Reader) error {
 	*v = make(Object)
 	var end ObjectEnd

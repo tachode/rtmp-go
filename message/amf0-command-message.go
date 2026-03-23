@@ -28,13 +28,17 @@ func (m Amf0CommandMessage) Marshal() ([]byte, error) {
 	amf0.Write(out, amf0.String(m.Command))
 	amf0.Write(out, amf0.Number(m.TransactionId))
 	if len(m.Object) > 0 {
-		amf0.Write(out, m.Object)
+		if err := amf0.Write(out, m.Object); err != nil {
+			return nil, err
+		}
 	} else {
 		amf0.Write(out, nil)
 	}
 	if m.Parameters != nil {
 		for _, param := range m.Parameters {
-			amf0.Write(out, param)
+			if err := amf0.Write(out, param); err != nil {
+				return nil, err
+			}
 		}
 	}
 	return out.Bytes(), nil
@@ -72,3 +76,8 @@ func (m Amf0CommandMessage) String() string {
 	return fmt.Sprintf("%v: %+v Command=%v(tid=%v, obj=%+v, %+v)", m.Type(),
 		m.MetadataFields, m.Command, m.TransactionId, m.Object, m.Parameters)
 }
+
+func (m Amf0CommandMessage) GetCommand() string        { return m.Command }
+func (m Amf0CommandMessage) GetTransactionId() float64 { return m.TransactionId }
+func (m Amf0CommandMessage) GetObject() Object         { return m.Object }
+func (m Amf0CommandMessage) GetParameters() []any      { return m.Parameters }

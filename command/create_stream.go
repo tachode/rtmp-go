@@ -1,0 +1,36 @@
+package command
+
+import "github.com/tachode/rtmp-go/message"
+
+// NetConnection.createStream() command
+
+func init() { RegisterCommand(new(CreateStream)) }
+
+type CreateStream struct {
+	Transaction int
+}
+
+func (c CreateStream) CommandName() string { return "createStream" }
+
+func (c *CreateStream) FromMessageCommand(cmd message.Command) error {
+	c.Transaction = int(cmd.GetTransactionId())
+	return nil
+}
+
+func (c *CreateStream) ToMessageCommand() (message.Command, error) {
+	cmd := &message.Amf0CommandMessage{
+		Command:       c.CommandName(),
+		TransactionId: float64(c.Transaction),
+	}
+	return cmd, nil
+}
+
+func (c *CreateStream) MakeResponse(streamId int) message.Command {
+	cmd := &message.Amf0CommandMessage{
+		Command:       "_result",
+		TransactionId: float64(c.Transaction),
+		Object:        nil,
+		Parameters:    []any{streamId},
+	}
+	return cmd
+}

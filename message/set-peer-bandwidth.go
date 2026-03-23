@@ -43,5 +43,5 @@ func (m *SetPeerBandwidth) Unmarshal(data []byte) error {
 }
 
 func (m SetPeerBandwidth) String() string {
-	return fmt.Sprintf("%v: %+v WindowSize=%d", m.Type(), m.MetadataFields, m.WindowSize)
+	return fmt.Sprintf("%v: %+v WindowSize=%d, LimitType=%s", m.Type(), m.MetadataFields, m.WindowSize, m.LimitType)
 }

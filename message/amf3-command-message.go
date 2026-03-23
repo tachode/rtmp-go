@@ -17,7 +17,7 @@ type Amf3CommandMessage struct {
 	MetadataFields
 	Command       string
 	TransactionId float64
-	Object        any
+	Object        any // can be an amf0.Object or an amf3.Object
 	Parameters    []any
 }
 
@@ -111,4 +111,15 @@ func (m *Amf3CommandMessage) Unmarshal(data []byte) error {
 func (m Amf3CommandMessage) String() string {
 	return fmt.Sprintf("%v: %+v Command=%v(tid=%v, obj=%+v, %+v)", m.Type(),
 		m.MetadataFields, m.Command, m.TransactionId, m.Object, m.Parameters)
+}
+
+func (m Amf3CommandMessage) GetCommand() string        { return m.Command }
+func (m Amf3CommandMessage) GetTransactionId() float64 { return m.TransactionId }
+func (m Amf3CommandMessage) GetParameters() []any      { return m.Parameters }
+
+func (m Amf3CommandMessage) GetObject() Object {
+	if obj, ok := m.Object.(Object); ok {
+		return obj
+	}
+	return nil
 }

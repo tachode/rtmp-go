@@ -26,7 +26,9 @@ func (m Amf0DataMessage) Marshal() ([]byte, error) {
 	amf0.Write(out, amf0.String(m.Handler))
 	if m.Parameters != nil {
 		for _, param := range m.Parameters {
-			amf0.Write(out, param)
+			if err := amf0.Write(out, param); err != nil {
+				return nil, err
+			}
 		}
 	}
 	return out.Bytes(), nil

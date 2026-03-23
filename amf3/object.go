@@ -20,6 +20,14 @@ type Object struct {
 
 func init() { RegisterType(new(Object)) }
 
+func (v Object) Get(key string) (obj any, found bool) {
+	obj, found = v.SealedMembers[key]
+	if !found {
+		obj, found = v.DynamicMembers[key]
+	}
+	return
+}
+
 func (v *Object) isObjectRefType() {}
 
 func (v Object) Type() Type { return ObjectMarker }

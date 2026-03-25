@@ -64,7 +64,7 @@ func handleConn(conn net.Conn) {
 				case *command.Connect:
 					send(rtmpConn, 2, &message.WindowAcknowledgementSize{AcknowledgementWindowSize: 2_500_000})
 					send(rtmpConn, 2, &message.SetPeerBandwidth{WindowSize: 2_500_000, LimitType: message.BandwidthLimitDynamic})
-					send(rtmpConn, 2, &message.UserControlMessage{Event: message.UserControlStreamBegin, Parameters: []uint32{0}})
+					sendUserControl(rtmpConn, &usercontrol.StreamBegin{StreamID: 0})
 					send(rtmpConn, 3, c.MakeResponse(command.NewStatus(command.NetConnectionConnectSuccess), 0))
 				case *command.ReleaseStream:
 					send(rtmpConn, 3, c.MakeResponse(command.NewStatus(command.NetStreamUnpublishSuccess)))
@@ -72,7 +72,7 @@ func handleConn(conn net.Conn) {
 					send(rtmpConn, 3, c.MakeResponse(command.NewStatus(command.NetStreamPublishStart, "FCPublish Ignored")))
 				case *command.CreateStream:
 					send(rtmpConn, 3, c.MakeResponse(1))
-					send(rtmpConn, 2, &message.UserControlMessage{Event: message.UserControlStreamBegin, Parameters: []uint32{1}})
+					sendUserControl(rtmpConn, &usercontrol.StreamBegin{StreamID: 1})
 				case *command.Publish:
 					send(rtmpConn, 3, c.MakeStatus(command.NewStatus(command.NetStreamPublishStart), 1))
 				case *command.Play:
@@ -82,7 +82,7 @@ func handleConn(conn net.Conn) {
 				case *command.FCUnpublish:
 					send(rtmpConn, 3, c.MakeResponse(command.NewStatus(command.NetStreamPublishStart, "FCUnpublish Ignored")))
 				case *command.DeleteStream:
-					send(rtmpConn, 2, &message.UserControlMessage{Event: message.UserControlStreamEOF, Parameters: []uint32{1}})
+					sendUserControl(rtmpConn, &usercontrol.StreamEOF{StreamID: 1})
 					// Note: use NetStream.Play.UnpublishNotify if stream was outbound instead of inbound
 					send(rtmpConn, 3, c.MakeResponse(command.NewStatus(command.NetStreamUnpublishSuccess)))
 				}
@@ -98,13 +98,7 @@ func handleConn(conn net.Conn) {
 				case *usercontrol.SetBufferLength:
 					log.Printf("Client set buffer length: stream=%d, length=%dms", e.StreamID, e.BufferLength)
 				case *usercontrol.PingRequest:
-					resp := &usercontrol.PingResponse{Timestamp: e.Timestamp}
-					respMsg, err := resp.ToMessage()
-					if err != nil {
-						log.Println(err)
-					} else {
-						send(rtmpConn, 2, respMsg)
-					}
+					sendUserControl(rtmpConn, &usercontrol.PingResponse{Timestamp: e.Timestamp})
 				case *usercontrol.PingResponse:
 					log.Printf("Received ping response: timestamp=%d", e.Timestamp)
 				}
@@ -120,4 +114,12 @@ func send(c rtmp.Conn, chunkStream int, m message.Message) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func sendUserControl(c rtmp.Conn, event usercontrol.Event) {
+	msg, err := event.ToMessage()
+	if err != nil {
+		log.Fatal(err)
+	}
+	send(c, 2, msg)
 }

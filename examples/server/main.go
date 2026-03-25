@@ -6,6 +6,7 @@ import (
 
 	rtmp "github.com/tachode/rtmp-go"
 	"github.com/tachode/rtmp-go/command"
+	"github.com/tachode/rtmp-go/examples"
 	"github.com/tachode/rtmp-go/message"
 	"github.com/tachode/rtmp-go/usercontrol"
 )
@@ -45,6 +46,9 @@ func handleConn(conn net.Conn) {
 		log.Fatal(err)
 	}
 
+	stopStreaming := make(chan struct{})
+	defer close(stopStreaming)
+
 	for {
 		msg, err := rtmpConn.ReadMessage()
 		if err != nil {
@@ -77,6 +81,7 @@ func handleConn(conn net.Conn) {
 					send(rtmpConn, 3, c.MakeStatus(command.NewStatus(command.NetStreamPublishStart), 1))
 				case *command.Play:
 					send(rtmpConn, 3, c.MakeStatus(command.NewStatus(command.NetStreamPlayStart)))
+					go examples.StreamBlankMedia(rtmpConn, 3, 1, stopStreaming)
 				case *command.GetStreamLength:
 					send(rtmpConn, 3, c.MakeResponse(0)) // 0 == live
 				case *command.FCUnpublish:

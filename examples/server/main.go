@@ -65,7 +65,7 @@ func handleConn(conn net.Conn) {
 					send(rtmpConn, 2, &message.WindowAcknowledgementSize{AcknowledgementWindowSize: 2_500_000})
 					send(rtmpConn, 2, &message.SetPeerBandwidth{WindowSize: 2_500_000, LimitType: message.BandwidthLimitDynamic})
 					sendUserControl(rtmpConn, &usercontrol.StreamBegin{StreamID: 0})
-					send(rtmpConn, 3, c.MakeResponse(command.NewStatus(command.NetConnectionConnectSuccess), 0))
+					send(rtmpConn, 3, c.MakeResponse(command.NewStatus(command.NetConnectionConnectSuccess), command.ObjectEncodingAMF0))
 				case *command.ReleaseStream:
 					send(rtmpConn, 3, c.MakeResponse(command.NewStatus(command.NetStreamUnpublishSuccess)))
 				case *command.FCPublish:

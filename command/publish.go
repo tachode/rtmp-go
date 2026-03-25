@@ -8,13 +8,27 @@ import (
 
 func init() { RegisterCommand(new(Publish)) }
 
+// HowToPublish specifies the publishing type for the publish command.
 type HowToPublish string
 
 const (
-	HowToPublishRecord        HowToPublish = "record"
-	HowToPublishAppend        HowToPublish = "append"
+	// HowToPublishRecord publishes and records live data, saving to a new file
+	// matching the stream name. If the file exists, it is overwritten.
+	HowToPublishRecord HowToPublish = "record"
+
+	// HowToPublishAppend publishes and records live data, appending to a file
+	// matching the stream name. If no matching file is found, it is created.
+	HowToPublishAppend HowToPublish = "append"
+
+	// HowToPublishAppendWithGap publishes and records live data with additional
+	// time coordination information to help the server determine the correct
+	// transition point when dynamic streaming.
 	HowToPublishAppendWithGap HowToPublish = "appendWithGap"
-	HowToPublishLive          HowToPublish = "live"
+
+	// HowToPublishLive publishes live data without recording it. If a file
+	// matching the stream name exists, it is deleted. This is the default if
+	// the publishing type is omitted.
+	HowToPublishLive HowToPublish = "live"
 )
 
 type Publish struct {

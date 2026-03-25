@@ -9,8 +9,10 @@ func init() { RegisterCommand(new(Play)) }
 type Play struct {
 	StreamId      int
 	Transaction   int
-	StreamKey     string
-	StartPosition float64
+	StreamKey     string  // Name of the stream to play.
+	StartPosition float64 // Start position in seconds (-2 = live|recorded, -1 = live only, >= 0 = seek).
+	Duration      float64 // Duration of playback in seconds (-1 = play until end).
+	Reset         bool    // Whether to flush any previous playlist.
 }
 
 func (p Play) CommandName() string { return "play" }
@@ -29,6 +31,16 @@ func (p *Play) FromMessageCommand(cmd message.Command) error {
 			p.StartPosition = n
 		}
 	}
+	if len(params) > 2 {
+		if n, ok := message.ToFloat64(params[2]); ok {
+			p.Duration = n
+		}
+	}
+	if len(params) > 3 {
+		if b, ok := message.ToBool(params[3]); ok {
+			p.Reset = b
+		}
+	}
 	return nil
 }
 
@@ -39,7 +51,7 @@ func (p *Play) ToMessageCommand() (message.Command, error) {
 		},
 		Command:       p.CommandName(),
 		TransactionId: float64(p.Transaction),
-		Parameters:    []any{p.StreamKey, p.StartPosition},
+		Parameters:    []any{p.StreamKey, p.StartPosition, p.Duration, p.Reset},
 	}
 	return cmd, nil
 }

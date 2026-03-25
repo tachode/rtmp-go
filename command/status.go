@@ -31,6 +31,7 @@ const (
 	NetStreamConnectSuccess              StatusCode = "NetStream.Connect.Success"
 	NetStreamFailed                      StatusCode = "NetStream.Failed"
 	NetStreamMulticastStreamReset        StatusCode = "NetStream.MulticastStream.Reset"
+	NetStreamPauseNotify                 StatusCode = "NetStream.Pause.Notify"
 	NetStreamPlayFailed                  StatusCode = "NetStream.Play.Failed"
 	NetStreamPlayInsufficientBW          StatusCode = "NetStream.Play.InsufficientBW"
 	NetStreamPlayPublishNotify           StatusCode = "NetStream.Play.PublishNotify"
@@ -47,6 +48,8 @@ const (
 	NetStreamRecordNoAccess              StatusCode = "NetStream.Record.NoAccess"
 	NetStreamRecordStart                 StatusCode = "NetStream.Record.Start"
 	NetStreamRecordStop                  StatusCode = "NetStream.Record.Stop"
+	NetStreamSeekNotify                  StatusCode = "NetStream.Seek.Notify"
+	NetStreamUnpauseNotify               StatusCode = "NetStream.Unpause.Notify"
 	NetStreamUnpublishSuccess            StatusCode = "NetStream.Unpublish.Success"
 )
 
@@ -75,6 +78,7 @@ var defaultDescriptions = map[StatusCode]string{
 	NetStreamConnectSuccess:              "Dispatched when a NetStream is created successfully.",
 	NetStreamFailed:                      "An attempt to use a Stream method failed.",
 	NetStreamMulticastStreamReset:        "A multicast subscription has changed focus to a different stream published with the same name in the same group.",
+	NetStreamPauseNotify:                 "The stream is paused.",
 	NetStreamPlayFailed:                  "A NetStream cannot play the stream.",
 	NetStreamPlayInsufficientBW:          "Data is playing behind the normal speed.",
 	NetStreamPlayPublishNotify:           "The initial publish operation to a stream was successful. This message is sent to all subscribers.",
@@ -91,6 +95,8 @@ var defaultDescriptions = map[StatusCode]string{
 	NetStreamRecordNoAccess:              "An attempt was made to record a read-only stream.",
 	NetStreamRecordStart:                 "Recording was started.",
 	NetStreamRecordStop:                  "Recording was stopped.",
+	NetStreamSeekNotify:                  "The seek operation is complete.",
+	NetStreamUnpauseNotify:               "The stream is resumed.",
 	NetStreamUnpublishSuccess:            "The stream was unpublished successfully.",
 }
 
@@ -110,6 +116,7 @@ func NewStatus(code StatusCode, description ...string) Status {
 		NetStreamClearSuccess,
 		NetStreamConnectSuccess,
 		NetStreamMulticastStreamReset,
+		NetStreamPauseNotify,
 		NetStreamPlayPublishNotify,
 		NetStreamPlayReset,
 		NetStreamPlayStart,
@@ -118,6 +125,8 @@ func NewStatus(code StatusCode, description ...string) Status {
 		NetStreamPublishStart,
 		NetStreamRecordStart,
 		NetStreamRecordStop,
+		NetStreamSeekNotify,
+		NetStreamUnpauseNotify,
 		NetStreamUnpublishSuccess:
 		level = LevelStatus
 	case NetStreamPlayInsufficientBW:

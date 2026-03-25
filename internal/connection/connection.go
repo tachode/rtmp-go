@@ -259,6 +259,7 @@ func (c *connection) readMessages() {
 		basicHeader, err := r.Peek(3)
 		if err != nil {
 			c.setError("peek", err)
+			return
 		}
 		switch basicHeader[0] & 0x3F {
 		case 0:
@@ -280,6 +281,7 @@ func (c *connection) readMessages() {
 		c.bytesRead.Add(uint64(n))
 		if err != nil {
 			c.setError("read", err)
+			return
 		}
 
 		if msg != nil {

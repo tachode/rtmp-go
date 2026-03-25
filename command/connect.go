@@ -46,8 +46,13 @@ func (c *Connect) MakeResponse(status Status, amfLevel int) message.Command {
 	p0 := status.ToObject()
 	p0["objectEncoding"] = amfLevel
 
+	command := "_result"
+	if status.Level == LevelError {
+		command = "_error"
+	}
+
 	cmd := &message.Amf0CommandMessage{
-		Command:       "_result",
+		Command:       command,
 		TransactionId: float64(c.Transaction),
 		Object:        nil,
 		Parameters:    []any{p0},

@@ -7,6 +7,7 @@ import (
 	rtmp "github.com/tachode/rtmp-go"
 	"github.com/tachode/rtmp-go/command"
 	"github.com/tachode/rtmp-go/message"
+	"github.com/tachode/rtmp-go/usercontrol"
 )
 
 func main() {
@@ -52,10 +53,9 @@ func handleConn(conn net.Conn) {
 		}
 		log.Printf("<<< %v", msg)
 
-		// Handle messages that require responses
-		commandMessage, isCommand := msg.(message.Command)
-		if isCommand {
-			cmd, err := command.FromMessageCommand(commandMessage)
+		switch m := msg.(type) {
+		case message.Command:
+			cmd, err := command.FromMessageCommand(m)
 			if err != nil {
 				log.Println(err)
 			} else {
@@ -74,9 +74,40 @@ func handleConn(conn net.Conn) {
 					send(rtmpConn, 3, c.MakeResponse(1))
 					send(rtmpConn, 2, &message.UserControlMessage{Event: message.UserControlStreamBegin, Parameters: []uint32{1}})
 				case *command.Publish:
-					send(rtmpConn, 3, c.MakeResponse(command.NewStatus(command.NetStreamPublishStart), 1))
+					send(rtmpConn, 3, c.MakeStatus(command.NewStatus(command.NetStreamPublishStart), 1))
+				case *command.Play:
+					send(rtmpConn, 3, c.MakeStatus(command.NewStatus(command.NetStreamPlayStart)))
+				case *command.GetStreamLength:
+					send(rtmpConn, 3, c.MakeResponse(0)) // 0 == live
+				case *command.FCUnpublish:
+					send(rtmpConn, 3, c.MakeResponse(command.NewStatus(command.NetStreamPublishStart, "FCUnpublish Ignored")))
+				case *command.DeleteStream:
+					send(rtmpConn, 2, &message.UserControlMessage{Event: message.UserControlStreamEOF, Parameters: []uint32{1}})
+					// Note: use NetStream.Play.UnpublishNotify if stream was outbound instead of inbound
+					send(rtmpConn, 3, c.MakeResponse(command.NewStatus(command.NetStreamUnpublishSuccess)))
 				}
+			}
 
+		case *message.UserControlMessage:
+			event, err := usercontrol.FromMessage(m)
+			if err != nil {
+				log.Println(err)
+			} else {
+				log.Printf("Received user control event %T: %+v", event, event)
+				switch e := event.(type) {
+				case *usercontrol.SetBufferLength:
+					log.Printf("Client set buffer length: stream=%d, length=%dms", e.StreamID, e.BufferLength)
+				case *usercontrol.PingRequest:
+					resp := &usercontrol.PingResponse{Timestamp: e.Timestamp}
+					respMsg, err := resp.ToMessage()
+					if err != nil {
+						log.Println(err)
+					} else {
+						send(rtmpConn, 2, respMsg)
+					}
+				case *usercontrol.PingResponse:
+					log.Printf("Received ping response: timestamp=%d", e.Timestamp)
+				}
 			}
 		}
 

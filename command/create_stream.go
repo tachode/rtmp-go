@@ -34,3 +34,13 @@ func (c *CreateStream) MakeResponse(streamId int) message.Command {
 	}
 	return cmd
 }
+
+func (c *CreateStream) MakeErrorResponse(status Status) message.Command {
+	cmd := &message.Amf0CommandMessage{
+		Command:       "_error",
+		TransactionId: float64(c.Transaction),
+		Object:        nil,
+		Parameters:    []any{status.ToObject()},
+	}
+	return cmd
+}

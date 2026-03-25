@@ -34,8 +34,13 @@ func (r *ReleaseStream) ToMessageCommand() (message.Command, error) {
 }
 
 func (r *ReleaseStream) MakeResponse(status Status) message.Command {
+	command := "_result"
+	if status.Level == LevelError {
+		command = "_error"
+	}
+
 	cmd := &message.Amf0CommandMessage{
-		Command:       "_result",
+		Command:       command,
 		TransactionId: float64(r.Transaction),
 		Object:        nil,
 		Parameters:    []any{status.ToObject()},

@@ -520,7 +520,18 @@ func (m AudioMessage) String() string {
 			m.Type(), m.MetadataFields, track.CodecId, m.Rate, m.SampleSize, m.Stereo,
 			m.PacketType, len(track.Payload))
 	}
-	return fmt.Sprintf("%v: %+v pkt:%v tracks:%d multitrack:%v payload:%v bytes",
-		m.Type(), m.MetadataFields, m.PacketType, len(m.Tracks),
-		m.MultitrackType, len(m.Tracks[0].Payload))
+	nanoOffsetStr := ""
+	if m.TimestampNanoOffset > 0 {
+		nanoOffsetStr = fmt.Sprintf(" nanoOffset:%d", m.TimestampNanoOffset)
+	}
+	trackInfo := ""
+	for i, track := range m.Tracks {
+		if i > 0 {
+			trackInfo += ", "
+		}
+		trackInfo += fmt.Sprintf("{id:%d codec:%v payload:%d bytes}", track.TrackId, track.CodecId, len(track.Payload))
+	}
+	return fmt.Sprintf("%v: %+v pkt:%v multitrack:%v%s tracks:[%s]",
+		m.Type(), m.MetadataFields, m.PacketType,
+		m.MultitrackType, nanoOffsetStr, trackInfo)
 }

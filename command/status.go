@@ -9,8 +9,9 @@ import (
 type Level string
 
 const (
-	LevelStatus Level = "status"
-	LevelError  Level = "error"
+	LevelStatus  Level = "status"
+	LevelError   Level = "error"
+	LevelWarning Level = "warning"
 )
 
 type StatusCode string
@@ -24,10 +25,20 @@ const (
 	NetConnectionConnectRejected         StatusCode = "NetConnection.Connect.Rejected"
 	NetConnectionConnectSuccess          StatusCode = "NetConnection.Connect.Success"
 	NetConnectionProxyNotResponding      StatusCode = "NetConnection.Proxy.NotResponding"
+	NetStreamClearFailed                 StatusCode = "NetStream.Clear.Failed"
+	NetStreamClearSuccess                StatusCode = "NetStream.Clear.Success"
 	NetStreamConnectFailed               StatusCode = "NetStream.Connect.Failed"
 	NetStreamConnectSuccess              StatusCode = "NetStream.Connect.Success"
+	NetStreamFailed                      StatusCode = "NetStream.Failed"
 	NetStreamMulticastStreamReset        StatusCode = "NetStream.MulticastStream.Reset"
 	NetStreamPlayFailed                  StatusCode = "NetStream.Play.Failed"
+	NetStreamPlayInsufficientBW          StatusCode = "NetStream.Play.InsufficientBW"
+	NetStreamPlayPublishNotify           StatusCode = "NetStream.Play.PublishNotify"
+	NetStreamPlayReset                   StatusCode = "NetStream.Play.Reset"
+	NetStreamPlayStart                   StatusCode = "NetStream.Play.Start"
+	NetStreamPlayStop                    StatusCode = "NetStream.Play.Stop"
+	NetStreamPlayStreamNotFound          StatusCode = "NetStream.Play.StreamNotFound"
+	NetStreamPlayUnpublishNotify         StatusCode = "NetStream.Play.UnpublishNotify"
 	NetStreamPublishBadName              StatusCode = "NetStream.Publish.BadName"
 	NetStreamPublishFailed               StatusCode = "NetStream.Publish.Failed"
 	NetStreamPublishStart                StatusCode = "NetStream.Publish.Start"
@@ -58,10 +69,20 @@ var defaultDescriptions = map[StatusCode]string{
 	NetConnectionConnectRejected:         "The client does not have permission to connect to the application, or the application name specified during the connection attempt was not found on the server.",
 	NetConnectionConnectSuccess:          "The connection attempt succeeded.",
 	NetConnectionProxyNotResponding:      "The proxy server is not responding.",
+	NetStreamClearFailed:                 "A call to application.clearStreams() failed to delete a stream.",
+	NetStreamClearSuccess:                "A call to application.clearStreams() successfully deleted a stream.",
 	NetStreamConnectFailed:               "Dispatched when NetStream creation or connection fails (for example, if there is an error in the GroupSpecifier).",
 	NetStreamConnectSuccess:              "Dispatched when a NetStream is created successfully.",
+	NetStreamFailed:                      "An attempt to use a Stream method failed.",
 	NetStreamMulticastStreamReset:        "A multicast subscription has changed focus to a different stream published with the same name in the same group.",
 	NetStreamPlayFailed:                  "A NetStream cannot play the stream.",
+	NetStreamPlayInsufficientBW:          "Data is playing behind the normal speed.",
+	NetStreamPlayPublishNotify:           "The initial publish operation to a stream was successful. This message is sent to all subscribers.",
+	NetStreamPlayReset:                   "A playlist was reset.",
+	NetStreamPlayStart:                   "Play was started.",
+	NetStreamPlayStop:                    "Play was stopped.",
+	NetStreamPlayStreamNotFound:          "An attempt was made to play a stream that does not exist.",
+	NetStreamPlayUnpublishNotify:         "An unpublish operation from a stream was successful. This message is sent to all subscribers.",
 	NetStreamPublishBadName:              "An attempt was made to publish to a stream that is already being published by someone else.",
 	NetStreamPublishFailed:               "A call to NetStream.publish() was attempted and failed.",
 	NetStreamPublishStart:                "An attempt to publish was successful.",
@@ -86,13 +107,21 @@ func NewStatus(code StatusCode, description ...string) Status {
 	case NetConnectionConnectClosed,
 		NetConnectionConnectReconnectRequest,
 		NetConnectionConnectSuccess,
+		NetStreamClearSuccess,
 		NetStreamConnectSuccess,
 		NetStreamMulticastStreamReset,
+		NetStreamPlayPublishNotify,
+		NetStreamPlayReset,
+		NetStreamPlayStart,
+		NetStreamPlayStop,
+		NetStreamPlayUnpublishNotify,
 		NetStreamPublishStart,
 		NetStreamRecordStart,
 		NetStreamRecordStop,
 		NetStreamUnpublishSuccess:
 		level = LevelStatus
+	case NetStreamPlayInsufficientBW:
+		level = LevelWarning
 	}
 	return Status{
 		Level:       level,

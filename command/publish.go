@@ -57,7 +57,7 @@ func (p *Publish) ToMessageCommand() (message.Command, error) {
 	return cmd, nil
 }
 
-func (p *Publish) MakeResponse(status Status, clientId int) message.Command {
+func (p *Publish) MakeStatus(status Status, clientId int) message.Command {
 	p0 := status.ToObject()
 	p0["clientid"] = clientId
 

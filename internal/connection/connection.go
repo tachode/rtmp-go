@@ -107,7 +107,9 @@ func (c *connection) WriteMessage(msg message.Message, chunkStreamId int) (err e
 		return
 	}
 	for _, chunk := range chunks {
-		c.outboundQueue.Enqueue(chunk, cs.priority)
+		if err = c.outboundQueue.Enqueue(chunk, cs.priority); err != nil {
+			return
+		}
 	}
 	return
 }
@@ -234,8 +236,8 @@ func (c *connection) BytesRead() uint64 {
 
 func (c *connection) writeMessages() {
 	for {
-		chunk := c.outboundQueue.Dequeue()
-		if chunk == nil {
+		chunk, ok := c.outboundQueue.Dequeue()
+		if !ok {
 			return
 		}
 		n, err := c.conn.Write(chunk)

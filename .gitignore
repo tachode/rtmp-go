@@ -2,4 +2,6 @@ docs/video_file_format_spec_v10_1.pdf
 c.out
 .venv
 /server
+/client-publish
+/client-play
 .vscode

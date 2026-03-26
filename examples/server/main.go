@@ -43,7 +43,8 @@ func handleConn(conn net.Conn) {
 
 	err = rtmpConn.CreateOutboundChunkstream(3, 1)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return
 	}
 
 	stopStreaming := make(chan struct{})
@@ -117,7 +118,7 @@ func send(c rtmp.Conn, chunkStream int, m message.Message) {
 	log.Printf(">>> %s\n", m)
 	err := c.WriteMessage(m, chunkStream)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("send(): %s", err)
 	}
 }
 

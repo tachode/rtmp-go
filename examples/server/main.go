@@ -103,8 +103,6 @@ func handleConn(conn net.Conn) {
 				switch e := event.(type) {
 				case *usercontrol.SetBufferLength:
 					log.Printf("Client set buffer length: stream=%d, length=%dms", e.StreamID, e.BufferLength)
-				case *usercontrol.PingRequest:
-					sendUserControl(rtmpConn, &usercontrol.PingResponse{Timestamp: e.Timestamp})
 				case *usercontrol.PingResponse:
 					log.Printf("Received ping response: timestamp=%d", e.Timestamp)
 				}

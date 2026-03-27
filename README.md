@@ -1,6 +1,6 @@
 # rtmp-go
 
-Go implementation of Enhanced RTMP, focusing on ease of use and performance.
+Go implementation of Enhanced RTMP, focused on maintaining low-level access to fundamental RTMP message structures
 
 # Examples
 
@@ -90,7 +90,7 @@ Use ffmpeg in listen mode as a simple RTMP server that generates test media, the
 
 ```sh
 # Terminal 1: Start ffmpeg as a listening RTMP server with test content
-ffmpeg -re -f lavfi -i testsrc=duration=60:size=1280x720:rate=30 \
+ffmpeg -re -f lavfi -i "testsrc=duration=60:size=1280x720:rate=30" \
   -f lavfi -i "sine=frequency=1000:duration=60" \
   -shortest -f flv -listen 1 rtmp://localhost/live
 
@@ -98,36 +98,91 @@ ffmpeg -re -f lavfi -i testsrc=duration=60:size=1280x720:rate=30 \
 ./client-play
 ```
 
-# Status
+# Components
 
-## Initial Release
+```mermaid
+block-beta
+  columns 3
+  command data usercontrol
+  message["messsage (amf0, amf3)"]:3
+  rtmpConn["rtmp.Conn"]:3
+  chunkstream["chunkstream"]:3
+  netConn["net.Conn"]:3
+```
 
-This library is currently a work in progress. The planned initial release consists of the following high-level tasks:
+## command
 
-🗹 AMF0 Library
+Typed wrappers for RTMP command messages. Each command (Connect, Play, Publish, etc.) is a struct that can be converted to and from generic `message.Command` values.
 
-🗹  RTMP Message Library
+- `command.Command` — Interface for all typed commands: `CommandName()`, `FromMessageCommand()`, `ToMessageCommand()`
+- `command.FromMessageCommand()` — Dispatches a `message.Command` to the appropriate typed command
+- `command.RegisterCommand()` — Registers custom command types
+- Concrete commands: `Connect`, `Play`, `Publish`, `CreateStream`, `DeleteStream`, `Seek`, `Pause`, `OnStatus`, `ReleaseStream`, `FcPublish`, `FcUnpublish`, `Play2`, `ReceiveAudio`, `ReceiveVideo`, `GetStreamLength`
 
-🗹 Chunk Stream Implementation
+## data
 
-☐ Connection Implementation
+Typed wrappers for RTMP data messages. Follows the same registry pattern as `command`.
 
-☐ Examples
+- `data.Handler` — Interface for all typed data handlers: `HandlerName()`, `FromDataMessage()`, `ToDataMessage()`
+- `data.FromDataMessage()` — Dispatches a `message.Data` to the appropriate typed handler (automatically unwraps `@setDataFrame`)
+- `data.RegisterHandler()` — Registers custom handler types
+- Concrete handler: `OnMetaData`
 
-## Fast Follow
+## usercontrol
 
-These will be added shortly after the 1.0 release is complete
+Typed wrappers for RTMP user control events. Follows the same registry pattern as `command` and `data`.
 
-☐ RTMPS (TLS) examples
+- `usercontrol.Event` — Interface for all typed events: `EventType()`, `FromMessage()`, `ToMessage()`
+- `usercontrol.FromMessage()` — Dispatches a `*message.UserControlMessage` to the appropriate typed event
+- `usercontrol.RegisterEvent()` — Registers custom event types
+- Concrete events: `StreamBegin`, `StreamEof`, `StreamDry`, `SetBufferLength`, `StreamIsRecorded`, `PingRequest`, `PingResponse`
 
-☐ RTMP Aggregate Message type
+## message
 
-## Not Currently Planned
+Defines the core RTMP message abstraction and all concrete message types. Makes use of the AMF encoding packages (`amf0` and `amf3`).
 
-The following features are not currently planned, but may be candidates for consideration in future versions if there are use cases to motivate them.
+- `message.Message` — Interface implemented by all message types: `Type()`, `Marshal()`, `Unmarshal()`, `Metadata()`
+- `message.Command` — Extended interface for command messages: `GetCommand()`, `GetTransactionId()`, `GetObject()`, `GetParameters()`
+- `message.Data` — Extended interface for data messages: `GetHandler()`, `GetParameters()`
+- `message.Context` — Manages message serialization and AMF3 state; created via `message.NewContext()`
+- `message.RegisterType()` — Registers custom message types
+- Concrete types: `AudioMessage`, `VideoMessage`, `SetChunkSize`, `Acknowledgement`, `WindowAcknowledgementSize`, `SetPeerBandwidth`, `UserControlMessage`, and AMF0/AMF3 variants of command, data, and shared object messages
 
-☒ AMF0 Object References
+### amf0
 
-# Future Plans
+AMF0 (Action Message Format version 0) encoding and decoding.
 
-We're tracking the progress of [enhanced RTMP](https://github.com/veovera/enhanced-rtmp), and intend to add support in post-1.0 version of the library
+- `amf0.Read()` — Reads a single AMF0 value from an `io.Reader`
+- `amf0.Write()` — Writes a value to an `io.Writer`, automatically converting Go primitives
+- `amf0.Value` / `amf0.MutableValue` — Interfaces for serializable and deserializable AMF0 values
+- `amf0.RegisterType()` — Registers custom AMF0 types
+- Concrete types: `Number`, `Boolean`, `String`, `LongString`, `Object`, `EcmaArray`, `StrictArray`, `Date`, `Null`, `Undefined`, `Reference`, `XmlDocument`, `TypedObject`, `AvmplusObject`
+
+### amf3
+
+AMF3 (Action Message Format version 3) encoding and decoding. Unlike `amf0`, AMF3 uses stateful readers and writers that maintain reference tables for string and object deduplication.
+
+- `amf3.Reader` — Stateful deserializer: `NewReader()`, `ReadValue()`
+- `amf3.Writer` — Stateful serializer: `NewWriter()`, `WriteValue()`
+- `amf3.Value` / `amf3.MutableValue` — Interfaces for serializable and deserializable AMF3 values
+- `amf3.RegisterType()` — Registers custom AMF3 types
+- Concrete types: `Integer`, `Double`, `String`, `Array`, `Object`, `ByteArray`, `Date`, `Xml`, `XmlDocument`, `Boolean`, `Null`, `Undefined`
+
+## rtmp.Conn
+
+The main entry point for RTMP connections. Wraps a `net.Conn` with RTMP handshaking, message framing, and prioritized chunk stream multiplexing.
+
+- `rtmp.Conn` — Interface extending `net.Conn` with `ReadMessage()`, `WriteMessage()`, and `CreateOutboundChunkstream()`
+- `rtmp.NewClientConn()` — Creates a client-side connection (performs client handshake)
+- `rtmp.NewServerConn()` — Creates a server-side connection (performs server handshake)
+- `rtmp.HighPriority`, `rtmp.MediumPriority`, `rtmp.LowPriority` — Priority constants for outbound chunk streams
+
+## chunkstream
+
+Handles RTMP's chunk-based message framing. Messages are split into fixed-size chunks for interleaved multiplexing over a single TCP connection, with progressively compressed headers.
+
+- `chunkstream.Inbound` — Reassembles incoming chunks into complete messages: `NewInboundChunkStream()`, `Read()`
+- `chunkstream.Outbound` — Fragments outbound messages into chunks: `NewOutboundChunkStream()`, `Marshal()`
+- `chunkstream.ChunkHeader` — Chunk protocol header with `Read()` and `Write()` methods
+- `chunkstream.HeaderType` — Four header compression levels: `HeaderTypeFull`, `HeaderTypeSameStream`, `HeaderTypeSameStreamAndLength`, `HeaderTypeContinuation`
+

@@ -1,6 +1,6 @@
 # rtmp-go
 
-Go implementation of RTMP, focusing on ease of use and performance. This project does not aim to be complete -- it implements those portions of RTMP that are in use by modern RTMP clients and servers. For example, AMF0 object references are not implemented, and AMF3 is not currently sent or received. Aggregate message handling is also not completed.
+Go implementation of Enhanced RTMP, focusing on ease of use and performance.
 
 # Examples
 

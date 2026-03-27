@@ -103,8 +103,8 @@ type VideoMessage struct {
 	// Video command (when FrameType == VideoFrameTypeVideoCommand)
 	Command VideoCommand
 
-	// VideoMetadata holds AMF-encoded metadata (when PacketType == ERTMPVideoPacketTypeMetadata)
-	VideoMetadata []byte
+	// VideoMetadata holds structured metadata (when PacketType == ERTMPVideoPacketTypeMetadata)
+	VideoMetadata *VideoMetadata
 }
 
 func init() { RegisterType(new(VideoMessage)) }
@@ -118,7 +118,7 @@ func (m VideoMessage) IsERTMP() bool {
 		return m.Tracks[0].CodecId > 15
 	}
 	// Metadata-only messages with no tracks are E-RTMP
-	if m.PacketType == ERTMPVideoPacketTypeMetadata && len(m.VideoMetadata) > 0 {
+	if m.PacketType == ERTMPVideoPacketTypeMetadata && m.VideoMetadata != nil {
 		return true
 	}
 	return false
@@ -242,7 +242,10 @@ func (m *VideoMessage) unmarshalERTMP(data []byte) error {
 		}
 	case ERTMPVideoPacketTypeMetadata:
 		// Metadata has no FOURCC, body is AMF-encoded metadata
-		m.VideoMetadata = data[pos:]
+		m.VideoMetadata = &VideoMetadata{}
+		if err := m.VideoMetadata.UnmarshalAMF(data[pos:]); err != nil {
+			return fmt.Errorf("unmarshal video metadata: %w", err)
+		}
 		return nil
 	default:
 		if pos+4 > len(data) {
@@ -399,7 +402,13 @@ func (m VideoMessage) marshalERTMP() ([]byte, error) {
 
 	// Metadata: no FOURCC, just AMF-encoded body
 	if m.PacketType == ERTMPVideoPacketTypeMetadata && !isMultitrack {
-		out = append(out, m.VideoMetadata...)
+		if m.VideoMetadata != nil {
+			metaBytes, err := m.VideoMetadata.MarshalAMF()
+			if err != nil {
+				return nil, fmt.Errorf("marshal video metadata: %w", err)
+			}
+			out = append(out, metaBytes...)
+		}
 		return out, nil
 	}
 
@@ -485,9 +494,9 @@ func (m VideoMessage) String() string {
 			return fmt.Sprintf("%v: %+v frame:%v cmd:%v", m.Type(), m.MetadataFields,
 				m.FrameType, m.Command)
 		}
-		if m.PacketType == ERTMPVideoPacketTypeMetadata {
-			return fmt.Sprintf("%v: %+v frame:%v pkt:Metadata metadata:%d bytes",
-				m.Type(), m.MetadataFields, m.FrameType, len(m.VideoMetadata))
+		if m.PacketType == ERTMPVideoPacketTypeMetadata && m.VideoMetadata != nil {
+			return fmt.Sprintf("%v: %+v frame:%v pkt:Metadata metadata:%v",
+				m.Type(), m.MetadataFields, m.FrameType, m.VideoMetadata)
 		}
 		return fmt.Sprintf("%v: %+v (no tracks)", m.Type(), m.MetadataFields)
 	}

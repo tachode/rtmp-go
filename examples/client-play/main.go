@@ -43,8 +43,12 @@ func main() {
 			log.Printf("<<< Audio: timestamp=%d packetType=%v len=%d",
 				m.Metadata().Timestamp, m.PacketType, len(m.Tracks[0].Payload))
 		case *message.VideoMessage:
-			log.Printf("<<< Video: timestamp=%d frameType=%v packetType=%v len=%d",
-				m.Metadata().Timestamp, m.FrameType, m.PacketType, len(m.Tracks[0].Payload))
+			if m.PacketType == message.ERTMPVideoPacketTypeMetadata && m.VideoMetadata != nil {
+				log.Printf("<<< Video Metadata: %v", m.VideoMetadata)
+			} else {
+				log.Printf("<<< Video: timestamp=%d frameType=%v packetType=%v len=%d",
+					m.Metadata().Timestamp, m.FrameType, m.PacketType, len(m.Tracks[0].Payload))
+			}
 		case message.Data:
 			handler, err := data.FromDataMessage(m)
 			if err != nil {

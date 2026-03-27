@@ -125,10 +125,10 @@ func TestVideoMessage_Marshal(t *testing.T) {
 			msg: message.VideoMessage{
 				FrameType:     message.VideoFrameTypeKeyframe,
 				PacketType:    message.ERTMPVideoPacketTypeMetadata,
-				VideoMetadata: []byte{0x02, 0x00, 0x09}, // AMF0 string prefix
+				VideoMetadata: &message.VideoMetadata{},
 			},
-			// [1:1][001:3][0100:4] = 0x94, then metadata (no FOURCC)
-			expected: []byte{0x94, 0x02, 0x00, 0x09},
+			// [1:1][001:3][0100:4] = 0x94, then empty metadata body (no FOURCC)
+			expected: []byte{0x94},
 		},
 	}
 
@@ -198,11 +198,11 @@ func TestVideoMessage_Unmarshal(t *testing.T) {
 		},
 		{
 			name: "E-RTMP Metadata",
-			data: []byte{0x94, 0x02, 0x00, 0x09},
+			data: []byte{0x94},
 			expected: message.VideoMessage{
 				FrameType:     message.VideoFrameTypeKeyframe,
 				PacketType:    message.ERTMPVideoPacketTypeMetadata,
-				VideoMetadata: []byte{0x02, 0x00, 0x09},
+				VideoMetadata: &message.VideoMetadata{},
 			},
 		},
 		{
@@ -468,26 +468,36 @@ func TestVideoMessage_ERTMP_ModEx(t *testing.T) {
 
 func TestVideoMessage_ERTMP_Metadata(t *testing.T) {
 	// Metadata message has no FOURCC, just AMF-encoded body
-	metadata := []byte{0x02, 0x00, 0x09, 0x63, 0x6F, 0x6C, 0x6F, 0x72, 0x49, 0x6E, 0x66, 0x6F}
+	vm := &message.VideoMetadata{
+		ColorInfo: &message.ColorInfo{
+			ColorConfig: &message.ColorConfig{
+				BitDepth:       10,
+				ColorPrimaries: 9,
+			},
+		},
+	}
 
 	msg := message.VideoMessage{
 		FrameType:     message.VideoFrameTypeKeyframe,
 		PacketType:    message.ERTMPVideoPacketTypeMetadata,
-		VideoMetadata: metadata,
+		VideoMetadata: vm,
 	}
 	data, err := msg.Marshal()
 	require.NoError(t, err)
 
 	// First byte: [1:1][001:3][0100:4] = 0x94
 	assert.Equal(t, byte(0x94), data[0])
-	assert.Equal(t, metadata, data[1:])
 
 	var parsed message.VideoMessage
 	err = parsed.Unmarshal(data)
 	require.NoError(t, err)
 
 	assert.Equal(t, message.ERTMPVideoPacketTypeMetadata, parsed.PacketType)
-	assert.Equal(t, metadata, parsed.VideoMetadata)
+	require.NotNil(t, parsed.VideoMetadata)
+	require.NotNil(t, parsed.VideoMetadata.ColorInfo)
+	require.NotNil(t, parsed.VideoMetadata.ColorInfo.ColorConfig)
+	assert.Equal(t, float64(10), parsed.VideoMetadata.ColorInfo.ColorConfig.BitDepth)
+	assert.Equal(t, float64(9), parsed.VideoMetadata.ColorInfo.ColorConfig.ColorPrimaries)
 }
 
 func TestVideoMessage_ERTMP_MPEG2TSSequenceStart(t *testing.T) {

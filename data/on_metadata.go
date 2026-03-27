@@ -2,9 +2,6 @@ package data
 
 import (
 	"encoding/json"
-	"reflect"
-	"strconv"
-	"strings"
 
 	"github.com/tachode/rtmp-go/amf0"
 	"github.com/tachode/rtmp-go/message"
@@ -146,14 +143,14 @@ func (m *OnMetaData) FromDataMessage(msg message.Data) error {
 		return nil
 	}
 
-	readFields(obj, m)
+	message.ReadFields(obj, m)
 	return nil
 }
 
 func (m *OnMetaData) ToDataMessage() (message.Data, error) {
 	return &message.Amf0DataMessage{
 		Handler:    "onMetaData",
-		Parameters: []any{writeFields(m)},
+		Parameters: []any{message.WriteFields(m)},
 	}, nil
 }
 
@@ -183,147 +180,4 @@ type AudioTrackInfo struct {
 	SampleRate float64 `amf:"samplerate"`
 	// AudioCodecId is the audio codec ID (legacy integer or FourCC value).
 	AudioCodecId message.AudioCodecId `amf:"audiocodecid"`
-}
-
-// readFields populates the struct pointed to by target from the given
-// message.Object, using `amf` struct tags as property names. Tags may
-// contain comma-separated aliases (e.g. `amf:"fileSize,filesize"`); the
-// first matching name wins.
-func readFields(obj message.Object, target any) {
-	v := reflect.ValueOf(target).Elem()
-	t := v.Type()
-	for i := range t.NumField() {
-		tag := t.Field(i).Tag.Get("amf")
-		if tag == "" {
-			continue
-		}
-		names := strings.Split(tag, ",")
-		fv := v.Field(i)
-		switch fv.Kind() {
-		case reflect.Float64:
-			for _, name := range names {
-				if val := message.GetFloat64(obj, name); val != 0 {
-					fv.SetFloat(val)
-					break
-				}
-			}
-		case reflect.Uint32:
-			for _, name := range names {
-				if val := message.GetFloat64(obj, name); val != 0 {
-					fv.SetUint(uint64(val))
-					break
-				}
-			}
-		case reflect.Bool:
-			for _, name := range names {
-				if val := message.GetBool(obj, name); val {
-					fv.SetBool(val)
-					break
-				}
-			}
-		case reflect.String:
-			for _, name := range names {
-				if val := message.GetString(obj, name); val != "" {
-					fv.SetString(val)
-					break
-				}
-			}
-		case reflect.Pointer:
-			if fv.Type().Elem().Kind() == reflect.Bool {
-				for _, name := range names {
-					if bp := message.GetBoolPtr(obj, name); bp != nil {
-						fv.Set(reflect.ValueOf(bp))
-						break
-					}
-				}
-			}
-		case reflect.Map:
-			if fv.Type().Key().Kind() == reflect.Int {
-				for _, name := range names {
-					readTrackIdInfoMap(obj, name, fv)
-					if !fv.IsNil() {
-						break
-					}
-				}
-			}
-		}
-	}
-}
-
-// readTrackIdInfoMap reads a map[int]T field from a message.Object property,
-// where T is a struct with amf tags on its fields.
-func readTrackIdInfoMap(obj message.Object, key string, fv reflect.Value) {
-	m := message.GetStringMap(obj, key)
-	if m == nil {
-		return
-	}
-	elemType := fv.Type().Elem()
-	mapVal := reflect.MakeMap(fv.Type())
-	for k, v := range m {
-		id, err := strconv.Atoi(k)
-		if err != nil {
-			continue
-		}
-		trackObj, ok := v.(message.Object)
-		if !ok {
-			continue
-		}
-		elem := reflect.New(elemType)
-		readFields(trackObj, elem.Interface())
-		mapVal.SetMapIndex(reflect.ValueOf(id), elem.Elem())
-	}
-	if mapVal.Len() > 0 {
-		fv.Set(mapVal)
-	}
-}
-
-// writeFields serializes the struct into an amf0.EcmaArray, using `amf`
-// struct tags as property names. When a tag contains comma-separated aliases,
-// only the first name is used for serialization. Zero-valued fields are omitted.
-func writeFields(source any) amf0.EcmaArray {
-	props := amf0.EcmaArray{}
-	v := reflect.ValueOf(source)
-	if v.Kind() == reflect.Pointer {
-		v = v.Elem()
-	}
-	t := v.Type()
-	for i := range t.NumField() {
-		tag := t.Field(i).Tag.Get("amf")
-		if tag == "" {
-			continue
-		}
-		name, _, _ := strings.Cut(tag, ",")
-		fv := v.Field(i)
-		switch fv.Kind() {
-		case reflect.Float64:
-			if fv.Float() != 0 {
-				props[name] = fv.Float()
-			}
-		case reflect.Uint32:
-			if fv.Uint() != 0 {
-				props[name] = float64(fv.Uint())
-			}
-		case reflect.Bool:
-			if fv.Bool() {
-				props[name] = true
-			}
-		case reflect.String:
-			if fv.String() != "" {
-				props[name] = fv.String()
-			}
-		case reflect.Pointer:
-			if !fv.IsNil() {
-				props[name] = fv.Elem().Bool()
-			}
-		case reflect.Map:
-			if fv.Len() > 0 && fv.Type().Key().Kind() == reflect.Int {
-				innerMap := make(amf0.EcmaArray, fv.Len())
-				for _, key := range fv.MapKeys() {
-					innerMap[strconv.Itoa(int(key.Int()))] = writeFields(fv.MapIndex(key).Interface())
-				}
-				props[name] = innerMap
-			}
-		}
-	}
-	return props
 }

@@ -13,16 +13,12 @@ type CreateStream struct {
 func (c CreateStream) CommandName() string { return "createStream" }
 
 func (c *CreateStream) FromMessageCommand(cmd message.Command) error {
-	c.Transaction = int(cmd.GetTransactionId())
+	message.ReadFromCommand(cmd, c)
 	return nil
 }
 
 func (c *CreateStream) ToMessageCommand() (message.Command, error) {
-	cmd := &message.Amf0CommandMessage{
-		Command:       c.CommandName(),
-		TransactionId: float64(c.Transaction),
-	}
-	return cmd, nil
+	return message.BuildCommand(c.CommandName(), c), nil
 }
 
 func (c *CreateStream) MakeResponse(streamId int) message.Command {

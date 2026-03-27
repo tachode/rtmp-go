@@ -190,35 +190,35 @@ type Connect struct {
 func (c Connect) CommandName() string { return "connect" }
 
 func (c *Connect) FromMessageCommand(cmd message.Command) error {
-	c.Transaction = int(cmd.GetTransactionId())
-	obj := cmd.GetObject()
-	if obj == nil {
+	if cmd.GetObject() == nil {
 		return errors.New("connect command contains no command object")
 	}
-	message.ReadFields(obj, c)
+	message.ReadFromCommand(cmd, c)
 
 	// FourCcInfoMap fields use a custom type not handled by ReadFields
+	obj := cmd.GetObject()
 	c.VideoFourCcInfoMap = GetFourCcInfoMap(obj, "videoFourCcInfoMap")
 	c.AudioFourCcInfoMap = GetFourCcInfoMap(obj, "audioFourCcInfoMap")
 	return nil
 }
 
 func (c *Connect) ToMessageCommand() (message.Command, error) {
-	obj := amf0.Object(message.WriteFields(c))
+	cmd := message.BuildCommand(c.CommandName(), c)
 
 	// FourCcInfoMap fields use a custom type not handled by WriteFields
 	if len(c.VideoFourCcInfoMap) > 0 {
-		obj["videoFourCcInfoMap"] = fourCcInfoMapToAMF(c.VideoFourCcInfoMap)
+		if cmd.Object == nil {
+			cmd.Object = amf0.Object{}
+		}
+		cmd.Object["videoFourCcInfoMap"] = fourCcInfoMapToAMF(c.VideoFourCcInfoMap)
 	}
 	if len(c.AudioFourCcInfoMap) > 0 {
-		obj["audioFourCcInfoMap"] = fourCcInfoMapToAMF(c.AudioFourCcInfoMap)
+		if cmd.Object == nil {
+			cmd.Object = amf0.Object{}
+		}
+		cmd.Object["audioFourCcInfoMap"] = fourCcInfoMapToAMF(c.AudioFourCcInfoMap)
 	}
 
-	cmd := &message.Amf0CommandMessage{
-		Command:       c.CommandName(),
-		TransactionId: float64(c.Transaction),
-		Object:        obj,
-	}
 	return cmd, nil
 }
 

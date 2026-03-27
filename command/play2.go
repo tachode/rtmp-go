@@ -1,7 +1,6 @@
 package command
 
 import (
-	"github.com/tachode/rtmp-go/amf0"
 	"github.com/tachode/rtmp-go/message"
 )
 
@@ -25,9 +24,9 @@ const (
 	PlayTransitionSwitch        PlayTransition = "switch"        // Switches to a different bitrate of the same content.
 )
 
-type Play2 struct {
-	StreamId      int
-	Transaction   int
+// PlayOptions holds the NetStreamPlayOptions properties encoded as an AMF
+// object in the first parameter of a play2 command.
+type PlayOptions struct {
 	StreamName    string         `amf:"streamName"`    // The name of the new stream to transition to or to play.
 	OldStreamName string         `amf:"oldStreamName"` // The name of the old stream to transition from (empty if not transitioning).
 	Start         float64        `amf:"start"`         // The start time in seconds (-2 = live|recorded, -1 = live only, >= 0 = seek).
@@ -36,28 +35,19 @@ type Play2 struct {
 	Transition    PlayTransition `amf:"transition"`    // The transition mode (see PlayTransition constants).
 }
 
+type Play2 struct {
+	StreamId    int
+	Transaction int
+	PlayOptions `amfParameter:"0"`
+}
+
 func (p Play2) CommandName() string { return "play2" }
 
 func (p *Play2) FromMessageCommand(cmd message.Command) error {
-	p.StreamId = int(cmd.Metadata().StreamId)
-	p.Transaction = int(cmd.GetTransactionId())
-	params := cmd.GetParameters()
-	if len(params) > 0 {
-		if obj, ok := params[0].(message.Object); ok {
-			message.ReadFields(obj, p)
-		}
-	}
+	message.ReadFromCommand(cmd, p)
 	return nil
 }
 
 func (p *Play2) ToMessageCommand() (message.Command, error) {
-	cmd := &message.Amf0CommandMessage{
-		MetadataFields: message.MetadataFields{
-			StreamId: uint32(p.StreamId),
-		},
-		Command:       p.CommandName(),
-		TransactionId: float64(p.Transaction),
-		Parameters:    []any{amf0.Object(message.WriteFields(p))},
-	}
-	return cmd, nil
+	return message.BuildCommand(p.CommandName(), p), nil
 }

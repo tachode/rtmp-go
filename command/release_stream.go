@@ -8,29 +8,18 @@ func init() { RegisterCommand(new(ReleaseStream)) }
 
 type ReleaseStream struct {
 	Transaction int
-	StreamKey   string
+	StreamKey   string `amfParameter:"0"`
 }
 
 func (r ReleaseStream) CommandName() string { return "releaseStream" }
 
 func (r *ReleaseStream) FromMessageCommand(cmd message.Command) error {
-	r.Transaction = int(cmd.GetTransactionId())
-	params := cmd.GetParameters()
-	if len(params) > 0 {
-		if s, ok := message.ToString(params[0]); ok {
-			r.StreamKey = s
-		}
-	}
+	message.ReadFromCommand(cmd, r)
 	return nil
 }
 
 func (r *ReleaseStream) ToMessageCommand() (message.Command, error) {
-	cmd := &message.Amf0CommandMessage{
-		Command:       r.CommandName(),
-		TransactionId: float64(r.Transaction),
-		Parameters:    []any{r.StreamKey},
-	}
-	return cmd, nil
+	return message.BuildCommand(r.CommandName(), r), nil
 }
 
 func (r *ReleaseStream) MakeResponse(status Status) message.Command {

@@ -11,33 +11,18 @@ func init() { RegisterCommand(new(GetStreamLength)) }
 type GetStreamLength struct {
 	StreamId    int
 	Transaction int
-	StreamKey   string
+	StreamKey   string `amfParameter:"0"`
 }
 
 func (g GetStreamLength) CommandName() string { return "getStreamLength" }
 
 func (g *GetStreamLength) FromMessageCommand(cmd message.Command) error {
-	g.StreamId = int(cmd.Metadata().StreamId)
-	g.Transaction = int(cmd.GetTransactionId())
-	params := cmd.GetParameters()
-	if len(params) > 0 {
-		if s, ok := message.ToString(params[0]); ok {
-			g.StreamKey = s
-		}
-	}
+	message.ReadFromCommand(cmd, g)
 	return nil
 }
 
 func (g *GetStreamLength) ToMessageCommand() (message.Command, error) {
-	cmd := &message.Amf0CommandMessage{
-		MetadataFields: message.MetadataFields{
-			StreamId: uint32(g.StreamId),
-		},
-		Command:       g.CommandName(),
-		TransactionId: float64(g.Transaction),
-		Parameters:    []any{g.StreamKey},
-	}
-	return cmd, nil
+	return message.BuildCommand(g.CommandName(), g), nil
 }
 
 func (g *GetStreamLength) MakeResponse(duration float64) message.Command {

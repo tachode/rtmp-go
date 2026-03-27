@@ -252,3 +252,174 @@ func (m mapObject) Get(key string) (any, bool) {
 	v, ok := m[key]
 	return v, ok
 }
+
+// parseParameterTag splits an amfParameter struct tag into its positional
+// index and omitempty flag. The tag format is: "index[,omitempty]"
+func parseParameterTag(tag string) (index int, omitempty bool) {
+	if i := strings.Index(tag, ",omitempty"); i >= 0 {
+		omitempty = true
+		tag = tag[:i]
+	}
+	index, _ = strconv.Atoi(tag)
+	return
+}
+
+// ReadParameters populates the struct pointed to by target from the given
+// parameter slice, using `amfParameter` struct tags as positional indices.
+//
+// Supported field types: float64, int, bool, string, and struct (with amf tags).
+func ReadParameters(params []any, target any) {
+	v := reflect.ValueOf(target).Elem()
+	t := v.Type()
+	for i := range t.NumField() {
+		tag := t.Field(i).Tag.Get("amfParameter")
+		if tag == "" {
+			continue
+		}
+		index, _ := parseParameterTag(tag)
+		if index >= len(params) {
+			continue
+		}
+		fv := v.Field(i)
+		val := params[index]
+		switch fv.Kind() {
+		case reflect.Float64:
+			if n, ok := ToFloat64(val); ok {
+				fv.SetFloat(n)
+			}
+		case reflect.Int:
+			if n, ok := ToFloat64(val); ok {
+				fv.SetInt(int64(n))
+			}
+		case reflect.Bool:
+			if b, ok := ToBool(val); ok {
+				fv.SetBool(b)
+			}
+		case reflect.String:
+			if s, ok := ToString(val); ok {
+				fv.SetString(s)
+			}
+		case reflect.Struct:
+			if obj, ok := val.(Object); ok {
+				ReadFields(obj, fv.Addr().Interface())
+			}
+		}
+	}
+}
+
+// WriteParameters serializes the struct into a positional parameter slice,
+// using `amfParameter` struct tags as positional indices. Trailing parameters
+// tagged with ",omitempty" are omitted when they (and all subsequent tagged
+// fields) hold zero values.
+//
+// Supported field types: float64, int, bool, string, and struct (with amf tags).
+func WriteParameters(source any) []any {
+	v := reflect.ValueOf(source)
+	if v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+	t := v.Type()
+
+	type paramEntry struct {
+		index     int
+		omitempty bool
+		fieldIdx  int
+	}
+	var entries []paramEntry
+	for i := range t.NumField() {
+		tag := t.Field(i).Tag.Get("amfParameter")
+		if tag == "" {
+			continue
+		}
+		index, omitempty := parseParameterTag(tag)
+		entries = append(entries, paramEntry{index: index, omitempty: omitempty, fieldIdx: i})
+	}
+
+	// Find the highest index that must be included:
+	// non-omitempty, or omitempty with a non-zero value.
+	highestRequired := -1
+	for _, e := range entries {
+		if !e.omitempty || !v.Field(e.fieldIdx).IsZero() {
+			if e.index > highestRequired {
+				highestRequired = e.index
+			}
+		}
+	}
+	if highestRequired < 0 {
+		return nil
+	}
+
+	result := make([]any, highestRequired+1)
+	for _, e := range entries {
+		if e.index > highestRequired {
+			continue
+		}
+		fv := v.Field(e.fieldIdx)
+		switch fv.Kind() {
+		case reflect.Float64:
+			result[e.index] = fv.Float()
+		case reflect.Int:
+			result[e.index] = float64(fv.Int())
+		case reflect.Bool:
+			result[e.index] = fv.Bool()
+		case reflect.String:
+			result[e.index] = fv.String()
+		case reflect.Struct:
+			result[e.index] = amf0.Object(WriteFields(fv.Addr().Interface()))
+		}
+	}
+
+	return result
+}
+
+// ReadFromCommand populates a command struct from a Command message.
+// It sets StreamId and Transaction fields by name (if present), reads
+// `amf`-tagged fields from the command object, and reads `amfParameter`-tagged
+// fields from the command parameters.
+func ReadFromCommand(cmd Command, target any) {
+	v := reflect.ValueOf(target).Elem()
+	if f := v.FieldByName("StreamId"); f.IsValid() && f.CanSet() {
+		f.SetInt(int64(cmd.Metadata().StreamId))
+	}
+	if f := v.FieldByName("Transaction"); f.IsValid() && f.CanSet() {
+		f.SetInt(int64(cmd.GetTransactionId()))
+	}
+	if obj := cmd.GetObject(); obj != nil {
+		ReadFields(obj, target)
+	}
+	ReadParameters(cmd.GetParameters(), target)
+}
+
+// BuildCommand creates an Amf0CommandMessage from a command struct.
+// It reads StreamId and Transaction fields by name (if present), writes
+// `amf`-tagged fields to the command object, and writes `amfParameter`-tagged
+// fields to the command parameters.
+func BuildCommand(commandName string, source any) *Amf0CommandMessage {
+	v := reflect.ValueOf(source)
+	if v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	cmd := &Amf0CommandMessage{
+		Command: commandName,
+	}
+
+	if f := v.FieldByName("StreamId"); f.IsValid() {
+		cmd.MetadataFields.StreamId = uint32(f.Int())
+	}
+	if f := v.FieldByName("Transaction"); f.IsValid() {
+		cmd.TransactionId = float64(f.Int())
+	}
+
+	obj := WriteFields(source)
+	if len(obj) > 0 {
+		cmd.Object = amf0.Object(obj)
+	}
+
+	params := WriteParameters(source)
+	if len(params) > 0 {
+		cmd.Parameters = params
+	}
+
+	return cmd
+}

@@ -34,41 +34,26 @@ const (
 type Publish struct {
 	StreamId     int
 	Transaction  int
-	StreamKey    string
-	HowToPublish HowToPublish
+	StreamKey    string       `amfParameter:"0"`
+	HowToPublish HowToPublish `amfParameter:"1"`
 }
 
 func (p Publish) CommandName() string { return "publish" }
 
 func (p *Publish) FromMessageCommand(cmd message.Command) error {
-	p.StreamId = int(cmd.Metadata().StreamId)
-	p.Transaction = int(cmd.GetTransactionId())
-	params := cmd.GetParameters()
-	if len(params) > 0 {
-		if s, ok := message.ToString(params[0]); ok {
-			p.StreamKey = s
-		}
-	}
-	if len(params) > 1 {
-		if s, ok := message.ToString(params[1]); ok {
-			p.HowToPublish = HowToPublish(s)
-		} else {
-			p.HowToPublish = HowToPublishLive
-		}
+	message.ReadFromCommand(cmd, p)
+	if p.HowToPublish == "" {
+		p.HowToPublish = HowToPublishLive
 	}
 	return nil
 }
 
 func (p *Publish) ToMessageCommand() (message.Command, error) {
-	cmd := &message.Amf0CommandMessage{
-		MetadataFields: message.MetadataFields{
-			StreamId: uint32(p.StreamId),
-		},
-		Command:       p.CommandName(),
-		TransactionId: float64(p.Transaction),
-		Parameters:    []any{p.StreamKey},
+	out := *p
+	if out.HowToPublish == "" {
+		out.HowToPublish = HowToPublishLive
 	}
-	return cmd, nil
+	return message.BuildCommand(out.CommandName(), &out), nil
 }
 
 func (p *Publish) MakeStatus(status Status, clientId int) message.Command {

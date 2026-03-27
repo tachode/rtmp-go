@@ -13,16 +13,12 @@ type FCUnpublish struct {
 func (f FCUnpublish) CommandName() string { return "FCUnpublish" }
 
 func (f *FCUnpublish) FromMessageCommand(cmd message.Command) error {
-	f.Transaction = int(cmd.GetTransactionId())
+	message.ReadFromCommand(cmd, f)
 	return nil
 }
 
 func (f *FCUnpublish) ToMessageCommand() (message.Command, error) {
-	cmd := &message.Amf0CommandMessage{
-		Command:       f.CommandName(),
-		TransactionId: float64(f.Transaction),
-	}
-	return cmd, nil
+	return message.BuildCommand(f.CommandName(), f), nil
 }
 
 func (f *FCUnpublish) MakeResponse(status Status) message.Command {

@@ -51,7 +51,33 @@ const (
 type VideoFunction uint16
 
 const (
-	SupportVidClientSeek VideoFunction = 1
+	SupportVidClientSeek              VideoFunction = 0x0001
+	SupportVidClientHDR               VideoFunction = 0x0002
+	SupportVidClientVideoPacketTypeMD VideoFunction = 0x0004
+	SupportVidClientLargeScaleTile    VideoFunction = 0x0008
+)
+
+// FourCcInfoMask defines capability flags for a FourCC codec.
+type FourCcInfoMask uint16
+
+const (
+	FourCcInfoCanDecode  FourCcInfoMask = 0x01
+	FourCcInfoCanEncode  FourCcInfoMask = 0x02
+	FourCcInfoCanForward FourCcInfoMask = 0x04
+)
+
+// FourCcInfoMap maps FourCC codec strings to FourCcInfoMask capability flags.
+// A key of "*" acts as a wildcard for any codec.
+type FourCcInfoMap map[string]FourCcInfoMask
+
+// CapsExMask defines extended capability flags for E-RTMP.
+type CapsExMask uint16
+
+const (
+	CapsExReconnect           CapsExMask = 0x01
+	CapsExMultitrack          CapsExMask = 0x02
+	CapsExModEx               CapsExMask = 0x04
+	CapsExTimestampNanoOffset CapsExMask = 0x08
 )
 
 // ObjectEncoding indicates the AMF encoding method.
@@ -74,6 +100,12 @@ type Connect struct {
 	VideoFunction  VideoFunction  // Bitmask indicating which special video functions are supported.
 	PageUrl        string         // URL of the web page from where the SWF file was loaded.
 	ObjectEncoding ObjectEncoding // AMF encoding method (AMF0 or AMF3).
+
+	// E-RTMP capability negotiation
+	FourCcList         []string      // List of FourCC codec strings the client supports.
+	VideoFourCcInfoMap FourCcInfoMap // Per-codec capability flags for video codecs.
+	AudioFourCcInfoMap FourCcInfoMap // Per-codec capability flags for audio codecs.
+	CapsEx             CapsExMask    // Extended capabilities bitmask.
 }
 
 func (c Connect) CommandName() string { return "connect" }
@@ -94,32 +126,77 @@ func (c *Connect) FromMessageCommand(cmd message.Command) error {
 	c.VideoFunction = VideoFunction(GetFloat64(obj, "videoFunction"))
 	c.PageUrl = GetString(obj, "pageUrl")
 	c.ObjectEncoding = ObjectEncoding(GetFloat64(obj, "objectEncoding"))
+
+	// E-RTMP capability negotiation
+	c.FourCcList = GetStringSlice(obj, "fourCcList")
+	c.VideoFourCcInfoMap = GetFourCcInfoMap(obj, "videoFourCcInfoMap")
+	c.AudioFourCcInfoMap = GetFourCcInfoMap(obj, "audioFourCcInfoMap")
+	c.CapsEx = CapsExMask(GetFloat64(obj, "capsEx"))
 	return nil
 }
 
 func (c *Connect) ToMessageCommand() (message.Command, error) {
+	obj := amf0.Object{
+		"app":            c.App,
+		"flashver":       c.FlashVer,
+		"swfUrl":         c.SwfUrl,
+		"tcUrl":          c.TcUrl,
+		"fpad":           c.Fpad,
+		"audioCodecs":    float64(c.AudioCodecs),
+		"videoCodecs":    float64(c.VideoCodecs),
+		"videoFunction":  float64(c.VideoFunction),
+		"pageUrl":        c.PageUrl,
+		"objectEncoding": float64(c.ObjectEncoding),
+	}
+
+	if len(c.FourCcList) > 0 {
+		arr := make(amf0.StrictArray, len(c.FourCcList))
+		for i, v := range c.FourCcList {
+			arr[i] = v
+		}
+		obj["fourCcList"] = arr
+	}
+	if len(c.VideoFourCcInfoMap) > 0 {
+		obj["videoFourCcInfoMap"] = fourCcInfoMapToAMF(c.VideoFourCcInfoMap)
+	}
+	if len(c.AudioFourCcInfoMap) > 0 {
+		obj["audioFourCcInfoMap"] = fourCcInfoMapToAMF(c.AudioFourCcInfoMap)
+	}
+	if c.CapsEx != 0 {
+		obj["capsEx"] = float64(c.CapsEx)
+	}
+
 	cmd := &message.Amf0CommandMessage{
 		Command:       c.CommandName(),
 		TransactionId: float64(c.Transaction),
-		Object: amf0.Object{
-			"app":            c.App,
-			"flashver":       c.FlashVer,
-			"swfUrl":         c.SwfUrl,
-			"tcUrl":          c.TcUrl,
-			"fpad":           c.Fpad,
-			"audioCodecs":    float64(c.AudioCodecs),
-			"videoCodecs":    float64(c.VideoCodecs),
-			"videoFunction":  float64(c.VideoFunction),
-			"pageUrl":        c.PageUrl,
-			"objectEncoding": float64(c.ObjectEncoding),
-		},
+		Object:        obj,
 	}
 	return cmd, nil
 }
 
-func (c *Connect) MakeResponse(status Status, amfLevel ObjectEncoding) message.Command {
+func (c *Connect) MakeResponse(status Status, amfLevel ObjectEncoding, serverCaps ...ConnectResponseCaps) message.Command {
 	p0 := status.ToObject()
 	p0["objectEncoding"] = amfLevel
+
+	if len(serverCaps) > 0 {
+		caps := serverCaps[0]
+		if len(caps.VideoFourCcInfoMap) > 0 {
+			p0["videoFourCcInfoMap"] = fourCcInfoMapToAMF(caps.VideoFourCcInfoMap)
+		}
+		if len(caps.AudioFourCcInfoMap) > 0 {
+			p0["audioFourCcInfoMap"] = fourCcInfoMapToAMF(caps.AudioFourCcInfoMap)
+		}
+		if caps.CapsEx != 0 {
+			p0["capsEx"] = float64(caps.CapsEx)
+		}
+		if fourCcList := caps.fourCcList(); len(fourCcList) > 0 {
+			arr := make(amf0.StrictArray, len(fourCcList))
+			for i, v := range fourCcList {
+				arr[i] = v
+			}
+			p0["fourCcList"] = arr
+		}
+	}
 
 	command := "_result"
 	if status.Level == LevelError {
@@ -133,4 +210,40 @@ func (c *Connect) MakeResponse(status Status, amfLevel ObjectEncoding) message.C
 		Parameters:    []any{p0},
 	}
 	return cmd
+}
+
+// ConnectResponseCaps holds E-RTMP capabilities the server wishes to advertise
+// in its connect response.
+type ConnectResponseCaps struct {
+	VideoFourCcInfoMap FourCcInfoMap
+	AudioFourCcInfoMap FourCcInfoMap
+	CapsEx             CapsExMask
+}
+
+// fourCcList returns the deduplicated union of all codec keys from
+// VideoFourCcInfoMap and AudioFourCcInfoMap. If an "*" is encountered,
+// the returned list will be "*"
+func (c ConnectResponseCaps) fourCcList() []string {
+	seen := make(map[string]struct{})
+	var list []string
+	for _, m := range []FourCcInfoMap{c.VideoFourCcInfoMap, c.AudioFourCcInfoMap} {
+		for k := range m {
+			if k == "*" {
+				return []string{"*"}
+			}
+			if _, dup := seen[k]; !dup {
+				seen[k] = struct{}{}
+				list = append(list, k)
+			}
+		}
+	}
+	return list
+}
+
+func fourCcInfoMapToAMF(m FourCcInfoMap) amf0.Object {
+	o := make(amf0.Object, len(m))
+	for k, v := range m {
+		o[k] = float64(v)
+	}
+	return o
 }

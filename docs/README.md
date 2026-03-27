@@ -6,6 +6,7 @@ The base RTMP stream format is described in four main documents:
 * [Adobe's specification of the AMF0 format](amf0_spec_121207.pdf)
 * [Adobe's specification of the AMF3 format](amf3_spec_05_05_08.pdf) -- Not currently implemented in this project
 * [Adobe Flash Video File Format Specification](http://download.macromedia.com/f4v/video_file_format_spec_v10_1.pdf)
+* [Veovera's Enhanced RTMP Specification](https://veovera.org/docs/enhanced/enhanced-rtmp-v2)
 
 These first three documents are hosted locally by this repository because there are no stable, official locations that reliably make them available.
 

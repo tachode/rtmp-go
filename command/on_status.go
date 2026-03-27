@@ -16,8 +16,7 @@ type OnStatus struct {
 func (o OnStatus) CommandName() string { return "onStatus" }
 
 func (o *OnStatus) FromMessageCommand(cmd message.Command) error {
-	message.ReadFromCommand(cmd, o)
-	return nil
+	return message.ReadFromCommand(cmd, o)
 }
 
 func (o *OnStatus) ToMessageCommand() (message.Command, error) {

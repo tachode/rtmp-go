@@ -17,8 +17,7 @@ type GetStreamLength struct {
 func (g GetStreamLength) CommandName() string { return "getStreamLength" }
 
 func (g *GetStreamLength) FromMessageCommand(cmd message.Command) error {
-	message.ReadFromCommand(cmd, g)
-	return nil
+	return message.ReadFromCommand(cmd, g)
 }
 
 func (g *GetStreamLength) ToMessageCommand() (message.Command, error) {
@@ -26,14 +25,5 @@ func (g *GetStreamLength) ToMessageCommand() (message.Command, error) {
 }
 
 func (g *GetStreamLength) MakeResponse(duration float64) message.Command {
-	cmd := &message.Amf0CommandMessage{
-		MetadataFields: message.MetadataFields{
-			StreamId: uint32(g.StreamId),
-		},
-		Command:       "onResult",
-		TransactionId: float64(g.Transaction),
-		Object:        nil,
-		Parameters:    []any{duration},
-	}
-	return cmd
+	return responseCommand("onResult", g.StreamId, g.Transaction, duration)
 }

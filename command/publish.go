@@ -41,7 +41,9 @@ type Publish struct {
 func (p Publish) CommandName() string { return "publish" }
 
 func (p *Publish) FromMessageCommand(cmd message.Command) error {
-	message.ReadFromCommand(cmd, p)
+	if err := message.ReadFromCommand(cmd, p); err != nil {
+		return err
+	}
 	if p.HowToPublish == "" {
 		p.HowToPublish = HowToPublishLive
 	}
@@ -59,15 +61,5 @@ func (p *Publish) ToMessageCommand() (message.Command, error) {
 func (p *Publish) MakeStatus(status Status, clientId int) message.Command {
 	p0 := status.ToObject()
 	p0["clientid"] = clientId
-
-	cmd := &message.Amf0CommandMessage{
-		MetadataFields: message.MetadataFields{
-			StreamId: uint32(p.StreamId),
-		},
-		Command:       "onStatus",
-		TransactionId: float64(p.Transaction),
-		Object:        nil,
-		Parameters:    []any{p0},
-	}
-	return cmd
+	return responseCommand("onStatus", p.StreamId, p.Transaction, p0)
 }

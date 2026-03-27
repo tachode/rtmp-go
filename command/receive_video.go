@@ -16,8 +16,7 @@ type ReceiveVideo struct {
 func (r ReceiveVideo) CommandName() string { return "receiveVideo" }
 
 func (r *ReceiveVideo) FromMessageCommand(cmd message.Command) error {
-	message.ReadFromCommand(cmd, r)
-	return nil
+	return message.ReadFromCommand(cmd, r)
 }
 
 func (r *ReceiveVideo) ToMessageCommand() (message.Command, error) {

@@ -18,8 +18,7 @@ type Play struct {
 func (p Play) CommandName() string { return "play" }
 
 func (p *Play) FromMessageCommand(cmd message.Command) error {
-	message.ReadFromCommand(cmd, p)
-	return nil
+	return message.ReadFromCommand(cmd, p)
 }
 
 func (p *Play) ToMessageCommand() (message.Command, error) {
@@ -27,14 +26,5 @@ func (p *Play) ToMessageCommand() (message.Command, error) {
 }
 
 func (p *Play) MakeStatus(status Status) message.Command {
-	cmd := &message.Amf0CommandMessage{
-		MetadataFields: message.MetadataFields{
-			StreamId: uint32(p.StreamId),
-		},
-		Command:       "onStatus",
-		TransactionId: float64(p.Transaction),
-		Object:        nil,
-		Parameters:    []any{status.ToObject()},
-	}
-	return cmd
+	return responseCommand("onStatus", p.StreamId, p.Transaction, status.ToObject())
 }

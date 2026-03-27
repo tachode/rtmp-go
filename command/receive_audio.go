@@ -16,8 +16,7 @@ type ReceiveAudio struct {
 func (r ReceiveAudio) CommandName() string { return "receiveAudio" }
 
 func (r *ReceiveAudio) FromMessageCommand(cmd message.Command) error {
-	message.ReadFromCommand(cmd, r)
-	return nil
+	return message.ReadFromCommand(cmd, r)
 }
 
 func (r *ReceiveAudio) ToMessageCommand() (message.Command, error) {

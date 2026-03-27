@@ -156,3 +156,36 @@ func (s *Status) FromObject(obj message.Object) {
 func (s Status) ToObject() amf0.Object {
 	return amf0.Object(message.WriteFields(s))
 }
+
+// responseCommand builds a response Amf0CommandMessage with the given
+// command name, stream ID, transaction ID, and parameters.
+func responseCommand(name string, streamId, transaction int, params ...any) message.Command {
+	return &message.Amf0CommandMessage{
+		MetadataFields: message.MetadataFields{StreamId: uint32(streamId)},
+		Command:        name,
+		TransactionId:  float64(transaction),
+		Parameters:     params,
+	}
+}
+
+// streamStatusResponse builds an onStatus/_error response for stream-level
+// commands. The command name is "_error" when the status level indicates an
+// error; otherwise "onStatus".
+func streamStatusResponse(streamId, transaction int, status Status) message.Command {
+	name := "onStatus"
+	if status.Level == LevelError {
+		name = "_error"
+	}
+	return responseCommand(name, streamId, transaction, status.ToObject())
+}
+
+// resultResponse builds a _result/_error response for connection-level
+// commands. The command name is "_error" when the status level indicates an
+// error; otherwise "_result".
+func resultResponse(transaction int, status Status) message.Command {
+	name := "_result"
+	if status.Level == LevelError {
+		name = "_error"
+	}
+	return responseCommand(name, 0, transaction, status.ToObject())
+}

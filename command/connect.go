@@ -193,7 +193,9 @@ func (c *Connect) FromMessageCommand(cmd message.Command) error {
 	if cmd.GetObject() == nil {
 		return errors.New("connect command contains no command object")
 	}
-	message.ReadFromCommand(cmd, c)
+	if err := message.ReadFromCommand(cmd, c); err != nil {
+		return err
+	}
 
 	// FourCcInfoMap fields use a custom type not handled by ReadFields
 	obj := cmd.GetObject()

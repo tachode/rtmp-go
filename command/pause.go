@@ -17,8 +17,7 @@ type Pause struct {
 func (p Pause) CommandName() string { return "pause" }
 
 func (p *Pause) FromMessageCommand(cmd message.Command) error {
-	message.ReadFromCommand(cmd, p)
-	return nil
+	return message.ReadFromCommand(cmd, p)
 }
 
 func (p *Pause) ToMessageCommand() (message.Command, error) {
@@ -26,19 +25,5 @@ func (p *Pause) ToMessageCommand() (message.Command, error) {
 }
 
 func (p *Pause) MakeStatus(status Status) message.Command {
-	command := "onStatus"
-	if status.Level == LevelError {
-		command = "_error"
-	}
-
-	cmd := &message.Amf0CommandMessage{
-		MetadataFields: message.MetadataFields{
-			StreamId: uint32(p.StreamId),
-		},
-		Command:       command,
-		TransactionId: float64(p.Transaction),
-		Object:        nil,
-		Parameters:    []any{status.ToObject()},
-	}
-	return cmd
+	return streamStatusResponse(p.StreamId, p.Transaction, status)
 }

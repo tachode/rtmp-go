@@ -14,8 +14,7 @@ type ReleaseStream struct {
 func (r ReleaseStream) CommandName() string { return "releaseStream" }
 
 func (r *ReleaseStream) FromMessageCommand(cmd message.Command) error {
-	message.ReadFromCommand(cmd, r)
-	return nil
+	return message.ReadFromCommand(cmd, r)
 }
 
 func (r *ReleaseStream) ToMessageCommand() (message.Command, error) {
@@ -23,16 +22,5 @@ func (r *ReleaseStream) ToMessageCommand() (message.Command, error) {
 }
 
 func (r *ReleaseStream) MakeResponse(status Status) message.Command {
-	command := "_result"
-	if status.Level == LevelError {
-		command = "_error"
-	}
-
-	cmd := &message.Amf0CommandMessage{
-		Command:       command,
-		TransactionId: float64(r.Transaction),
-		Object:        nil,
-		Parameters:    []any{status.ToObject()},
-	}
-	return cmd
+	return resultResponse(r.Transaction, status)
 }

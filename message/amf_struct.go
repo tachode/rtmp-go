@@ -376,7 +376,7 @@ func WriteParameters(source any) []any {
 // It sets StreamId and Transaction fields by name (if present), reads
 // `amf`-tagged fields from the command object, and reads `amfParameter`-tagged
 // fields from the command parameters.
-func ReadFromCommand(cmd Command, target any) {
+func ReadFromCommand(cmd Command, target any) error {
 	v := reflect.ValueOf(target).Elem()
 	if f := v.FieldByName("StreamId"); f.IsValid() && f.CanSet() {
 		f.SetInt(int64(cmd.Metadata().StreamId))
@@ -388,6 +388,7 @@ func ReadFromCommand(cmd Command, target any) {
 		ReadFields(obj, target)
 	}
 	ReadParameters(cmd.GetParameters(), target)
+	return nil
 }
 
 // BuildCommand creates an Amf0CommandMessage from a command struct.

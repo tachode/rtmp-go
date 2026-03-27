@@ -16,8 +16,7 @@ type Seek struct {
 func (s Seek) CommandName() string { return "seek" }
 
 func (s *Seek) FromMessageCommand(cmd message.Command) error {
-	message.ReadFromCommand(cmd, s)
-	return nil
+	return message.ReadFromCommand(cmd, s)
 }
 
 func (s *Seek) ToMessageCommand() (message.Command, error) {
@@ -25,19 +24,5 @@ func (s *Seek) ToMessageCommand() (message.Command, error) {
 }
 
 func (s *Seek) MakeStatus(status Status) message.Command {
-	command := "onStatus"
-	if status.Level == LevelError {
-		command = "_error"
-	}
-
-	cmd := &message.Amf0CommandMessage{
-		MetadataFields: message.MetadataFields{
-			StreamId: uint32(s.StreamId),
-		},
-		Command:       command,
-		TransactionId: float64(s.Transaction),
-		Object:        nil,
-		Parameters:    []any{status.ToObject()},
-	}
-	return cmd
+	return streamStatusResponse(s.StreamId, s.Transaction, status)
 }

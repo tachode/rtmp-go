@@ -44,8 +44,7 @@ type Play2 struct {
 func (p Play2) CommandName() string { return "play2" }
 
 func (p *Play2) FromMessageCommand(cmd message.Command) error {
-	message.ReadFromCommand(cmd, p)
-	return nil
+	return message.ReadFromCommand(cmd, p)
 }
 
 func (p *Play2) ToMessageCommand() (message.Command, error) {

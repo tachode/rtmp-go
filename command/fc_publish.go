@@ -13,8 +13,7 @@ type FCPublish struct {
 func (f FCPublish) CommandName() string { return "FCPublish" }
 
 func (f *FCPublish) FromMessageCommand(cmd message.Command) error {
-	message.ReadFromCommand(cmd, f)
-	return nil
+	return message.ReadFromCommand(cmd, f)
 }
 
 func (f *FCPublish) ToMessageCommand() (message.Command, error) {
@@ -22,11 +21,5 @@ func (f *FCPublish) ToMessageCommand() (message.Command, error) {
 }
 
 func (f *FCPublish) MakeResponse(status Status) message.Command {
-	cmd := &message.Amf0CommandMessage{
-		Command:       "onFCPublish",
-		TransactionId: float64(f.Transaction),
-		Object:        nil,
-		Parameters:    []any{status.ToObject()},
-	}
-	return cmd
+	return responseCommand("onFCPublish", 0, f.Transaction, status.ToObject())
 }

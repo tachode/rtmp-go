@@ -55,10 +55,10 @@ const (
 )
 
 type Status struct {
-	Level       Level
-	Code        StatusCode
-	Description string
-	TcUrl       string // Target URL for reconnect requests.
+	Level       Level      `amf:"level"`
+	Code        StatusCode `amf:"code"`
+	Description string     `amf:"description,omitempty"`
+	TcUrl       string     `amf:"tcUrl,omitempty"` // Target URL for reconnect requests.
 }
 
 func (s Status) Error() string {
@@ -150,22 +150,9 @@ func NewReconnectStatus(tcUrl string) Status {
 }
 
 func (s *Status) FromObject(obj message.Object) {
-	s.Level = Level(GetString(obj, "level"))
-	s.Code = StatusCode(GetString(obj, "code"))
-	s.Description = GetString(obj, "description")
-	s.TcUrl = GetString(obj, "tcUrl")
+	message.ReadFields(obj, s)
 }
 
 func (s Status) ToObject() amf0.Object {
-	obj := amf0.Object{
-		"level": s.Level,
-		"code":  s.Code,
-	}
-	if len(s.Description) > 0 {
-		obj["description"] = s.Description
-	}
-	if len(s.TcUrl) > 0 {
-		obj["tcUrl"] = s.TcUrl
-	}
-	return obj
+	return amf0.Object(message.WriteFields(s))
 }

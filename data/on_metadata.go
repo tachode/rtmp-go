@@ -18,77 +18,77 @@ type OnMetaData struct {
 	// AudioCodecId is the audio codec ID. For legacy codecs this is a small
 	// integer matching AudioTagHeader CodecID values. When FourCC signaling
 	// is used, this is a big-endian FourCC value (e.g. mp4a == 0x6d703461).
-	AudioCodecId message.AudioCodecId `amf:"audiocodecid"`
+	AudioCodecId message.AudioCodecId `amf:"audiocodecid,omitempty"`
 
 	// AudioDataRate is the audio bitrate in kilobits per second.
-	AudioDataRate float64 `amf:"audiodatarate"`
+	AudioDataRate float64 `amf:"audiodatarate,omitempty"`
 
 	// AudioDelay is the delay introduced by the audio codec, in seconds.
-	AudioDelay float64 `amf:"audiodelay"`
+	AudioDelay float64 `amf:"audiodelay,omitempty"`
 
 	// AudioSampleRate is the frequency at which the audio stream is replayed.
-	AudioSampleRate float64 `amf:"audiosamplerate"`
+	AudioSampleRate float64 `amf:"audiosamplerate,omitempty"`
 
 	// AudioSampleSize is the number of bits used to represent each audio sample.
-	AudioSampleSize float64 `amf:"audiosamplesize"`
+	AudioSampleSize float64 `amf:"audiosamplesize,omitempty"`
 
 	// Stereo indicates stereo audio.
-	Stereo bool `amf:"stereo"`
+	Stereo bool `amf:"stereo,omitempty"`
 
 	// Video properties (E-RTMP spec)
 
 	// VideoCodecId is the video codec ID. For legacy codecs this is a small
 	// integer matching VideoTagHeader CodecID values. When FourCC signaling
 	// is used, this is a big-endian FourCC value (e.g. avc1 == 0x61766331).
-	VideoCodecId message.VideoCodecId `amf:"videocodecid"`
+	VideoCodecId message.VideoCodecId `amf:"videocodecid,omitempty"`
 
 	// VideoDataRate is the video bitrate in kilobits per second.
-	VideoDataRate float64 `amf:"videodatarate"`
+	VideoDataRate float64 `amf:"videodatarate,omitempty"`
 
 	// Width is the width of the video in pixels.
-	Width float64 `amf:"width"`
+	Width float64 `amf:"width,omitempty"`
 
 	// Height is the height of the video in pixels.
-	Height float64 `amf:"height"`
+	Height float64 `amf:"height,omitempty"`
 
 	// FrameRate is the number of frames per second.
-	FrameRate float64 `amf:"framerate"`
+	FrameRate float64 `amf:"framerate,omitempty"`
 
 	// General properties (E-RTMP spec)
 
 	// Duration is the total duration of the file in seconds.
-	Duration float64 `amf:"duration"`
+	Duration float64 `amf:"duration,omitempty"`
 
 	// FileSize is the total size of the file in bytes.
 	// ffmpeg sends this as lowercase "filesize"; both forms are accepted.
-	FileSize float64 `amf:"fileSize,filesize"`
+	FileSize float64 `amf:"fileSize|filesize,omitempty"`
 
 	// CanSeekToEnd indicates that the last video frame is a key frame.
-	CanSeekToEnd bool `amf:"canSeekToEnd"`
+	CanSeekToEnd bool `amf:"canSeekToEnd,omitempty"`
 
 	// CreationDate is the creation date and time as a string.
-	CreationDate string `amf:"creationdate"`
+	CreationDate string `amf:"creationdate,omitempty"`
 
 	// E-RTMP multitrack properties
 
 	// AudioTrackIdInfoMap provides per-track metadata for additional audio
 	// tracks beyond the default track. Keys are track IDs starting at 1;
 	// the default track (ID 0) is described by the top-level fields.
-	AudioTrackIdInfoMap map[int]AudioTrackInfo `amf:"audioTrackIdInfoMap" json:",omitempty"`
+	AudioTrackIdInfoMap map[int]AudioTrackInfo `amf:"audioTrackIdInfoMap,omitempty" json:",omitempty"`
 
 	// VideoTrackIdInfoMap provides per-track metadata for additional video
 	// tracks beyond the default track. Keys are track IDs starting at 1;
 	// the default track (ID 0) is described by the top-level fields.
-	VideoTrackIdInfoMap map[int]VideoTrackInfo `amf:"videoTrackIdInfoMap" json:",omitempty"`
+	VideoTrackIdInfoMap map[int]VideoTrackInfo `amf:"videoTrackIdInfoMap,omitempty" json:",omitempty"`
 
 	// Properties observed in OBS metadata (not in the E-RTMP spec)
 
 	// AudioChannels is the number of audio channels. Observed in OBS metadata.
-	AudioChannels float64 `amf:"audiochannels"`
+	AudioChannels float64 `amf:"audiochannels,omitempty"`
 
 	// Encoder is a string identifying the software that produced the stream.
 	// Observed in OBS and ffmpeg/libav metadata.
-	Encoder string `amf:"encoder"`
+	Encoder string `amf:"encoder,omitempty"`
 
 	// Surround sound channel layout flags. Each indicates whether the
 	// corresponding speaker configuration is available. Observed in OBS metadata.
@@ -104,15 +104,15 @@ type OnMetaData struct {
 
 	// MajorBrand is the ISO base media file format major brand (e.g. "mp42").
 	// Observed in ffmpeg/Lavf metadata.
-	MajorBrand string `amf:"major_brand"`
+	MajorBrand string `amf:"major_brand,omitempty"`
 
 	// MinorVersion is the ISO base media file format minor version.
 	// Observed in ffmpeg/Lavf metadata.
-	MinorVersion float64 `amf:"minor_version"`
+	MinorVersion float64 `amf:"minor_version,omitempty"`
 
 	// CompatibleBrands lists the ISO base media file format compatible brands
 	// (e.g. "isommp41mp42"). Observed in ffmpeg/Lavf metadata.
-	CompatibleBrands string `amf:"compatible_brands"`
+	CompatibleBrands string `amf:"compatible_brands,omitempty"`
 }
 
 func (m OnMetaData) HandlerName() string { return "onMetaData" }
@@ -159,13 +159,13 @@ func (m *OnMetaData) ToDataMessage() (message.Data, error) {
 // top-level OnMetaData video fields.
 type VideoTrackInfo struct {
 	// Width is the width of this track in pixels.
-	Width float64 `amf:"width"`
+	Width float64 `amf:"width,omitempty"`
 	// Height is the height of this track in pixels.
-	Height float64 `amf:"height"`
+	Height float64 `amf:"height,omitempty"`
 	// VideoDataRate is the video bitrate in kilobits per second.
-	VideoDataRate float64 `amf:"videodatarate"`
+	VideoDataRate float64 `amf:"videodatarate,omitempty"`
 	// VideoCodecId is the video codec ID (legacy integer or FourCC value).
-	VideoCodecId message.VideoCodecId `amf:"videocodecid"`
+	VideoCodecId message.VideoCodecId `amf:"videocodecid,omitempty"`
 }
 
 // AudioTrackInfo describes the characteristics of a single audio track
@@ -173,11 +173,11 @@ type VideoTrackInfo struct {
 // top-level OnMetaData audio fields.
 type AudioTrackInfo struct {
 	// AudioDataRate is the audio bitrate in kilobits per second.
-	AudioDataRate float64 `amf:"audiodatarate"`
+	AudioDataRate float64 `amf:"audiodatarate,omitempty"`
 	// Channels is the number of audio channels.
-	Channels float64 `amf:"channels"`
+	Channels float64 `amf:"channels,omitempty"`
 	// SampleRate is the audio sample rate in Hz.
-	SampleRate float64 `amf:"samplerate"`
+	SampleRate float64 `amf:"samplerate,omitempty"`
 	// AudioCodecId is the audio codec ID (legacy integer or FourCC value).
-	AudioCodecId message.AudioCodecId `amf:"audiocodecid"`
+	AudioCodecId message.AudioCodecId `amf:"audiocodecid,omitempty"`
 }

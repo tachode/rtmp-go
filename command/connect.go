@@ -169,22 +169,22 @@ const (
 
 type Connect struct {
 	Transaction    int            // Always set to 1 for connect commands.
-	App            string         // The server application name the client is connected to (e.g. "testapp").
-	FlashVer       string         // Flash Player version string, as returned by getversion().
-	SwfUrl         string         // URL of the source SWF file making the connection.
-	TcUrl          string         // URL of the server: protocol://servername:port/appName/appInstance.
-	Fpad           bool           // True if a proxy is being used.
-	AudioCodecs    AudioCodecFlag // Bitmask indicating which audio codecs the client supports.
-	VideoCodecs    VideoCodecFlag // Bitmask indicating which video codecs the client supports.
-	VideoFunction  VideoFunction  // Bitmask indicating which special video functions are supported.
-	PageUrl        string         // URL of the web page from where the SWF file was loaded.
-	ObjectEncoding ObjectEncoding // AMF encoding method (AMF0 or AMF3).
+	App            string         `amf:"app"`            // The server application name the client is connected to (e.g. "testapp").
+	FlashVer       string         `amf:"flashver"`       // Flash Player version string, as returned by getversion().
+	SwfUrl         string         `amf:"swfUrl"`         // URL of the source SWF file making the connection.
+	TcUrl          string         `amf:"tcUrl"`          // URL of the server: protocol://servername:port/appName/appInstance.
+	Fpad           bool           `amf:"fpad"`           // True if a proxy is being used.
+	AudioCodecs    AudioCodecFlag `amf:"audioCodecs"`    // Bitmask indicating which audio codecs the client supports.
+	VideoCodecs    VideoCodecFlag `amf:"videoCodecs"`    // Bitmask indicating which video codecs the client supports.
+	VideoFunction  VideoFunction  `amf:"videoFunction"`  // Bitmask indicating which special video functions are supported.
+	PageUrl        string         `amf:"pageUrl"`        // URL of the web page from where the SWF file was loaded.
+	ObjectEncoding ObjectEncoding `amf:"objectEncoding"` // AMF encoding method (AMF0 or AMF3).
 
 	// E-RTMP capability negotiation
-	FourCcList         []string      // List of FourCC codec strings the client supports.
+	FourCcList         []string      `amf:"fourCcList,omitempty"` // List of FourCC codec strings the client supports.
 	VideoFourCcInfoMap FourCcInfoMap // Per-codec capability flags for video codecs.
 	AudioFourCcInfoMap FourCcInfoMap // Per-codec capability flags for audio codecs.
-	CapsEx             CapsExMask    // Extended capabilities bitmask.
+	CapsEx             CapsExMask    `amf:"capsEx,omitempty"` // Extended capabilities bitmask.
 }
 
 func (c Connect) CommandName() string { return "connect" }
@@ -195,54 +195,23 @@ func (c *Connect) FromMessageCommand(cmd message.Command) error {
 	if obj == nil {
 		return errors.New("connect command contains no command object")
 	}
-	c.App = GetString(obj, "app")
-	c.FlashVer = GetString(obj, "flashver")
-	c.SwfUrl = GetString(obj, "swfUrl")
-	c.TcUrl = GetString(obj, "tcUrl")
-	c.Fpad = GetBool(obj, "fpad")
-	c.AudioCodecs = AudioCodecFlag(GetFloat64(obj, "audioCodecs"))
-	c.VideoCodecs = VideoCodecFlag(GetFloat64(obj, "videoCodecs"))
-	c.VideoFunction = VideoFunction(GetFloat64(obj, "videoFunction"))
-	c.PageUrl = GetString(obj, "pageUrl")
-	c.ObjectEncoding = ObjectEncoding(GetFloat64(obj, "objectEncoding"))
+	message.ReadFields(obj, c)
 
-	// E-RTMP capability negotiation
-	c.FourCcList = GetStringSlice(obj, "fourCcList")
+	// FourCcInfoMap fields use a custom type not handled by ReadFields
 	c.VideoFourCcInfoMap = GetFourCcInfoMap(obj, "videoFourCcInfoMap")
 	c.AudioFourCcInfoMap = GetFourCcInfoMap(obj, "audioFourCcInfoMap")
-	c.CapsEx = CapsExMask(GetFloat64(obj, "capsEx"))
 	return nil
 }
 
 func (c *Connect) ToMessageCommand() (message.Command, error) {
-	obj := amf0.Object{
-		"app":            c.App,
-		"flashver":       c.FlashVer,
-		"swfUrl":         c.SwfUrl,
-		"tcUrl":          c.TcUrl,
-		"fpad":           c.Fpad,
-		"audioCodecs":    float64(c.AudioCodecs),
-		"videoCodecs":    float64(c.VideoCodecs),
-		"videoFunction":  float64(c.VideoFunction),
-		"pageUrl":        c.PageUrl,
-		"objectEncoding": float64(c.ObjectEncoding),
-	}
+	obj := amf0.Object(message.WriteFields(c))
 
-	if len(c.FourCcList) > 0 {
-		arr := make(amf0.StrictArray, len(c.FourCcList))
-		for i, v := range c.FourCcList {
-			arr[i] = v
-		}
-		obj["fourCcList"] = arr
-	}
+	// FourCcInfoMap fields use a custom type not handled by WriteFields
 	if len(c.VideoFourCcInfoMap) > 0 {
 		obj["videoFourCcInfoMap"] = fourCcInfoMapToAMF(c.VideoFourCcInfoMap)
 	}
 	if len(c.AudioFourCcInfoMap) > 0 {
 		obj["audioFourCcInfoMap"] = fourCcInfoMapToAMF(c.AudioFourCcInfoMap)
-	}
-	if c.CapsEx != 0 {
-		obj["capsEx"] = float64(c.CapsEx)
 	}
 
 	cmd := &message.Amf0CommandMessage{

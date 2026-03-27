@@ -8,13 +8,25 @@ import (
 	"github.com/tachode/rtmp-go/amf0"
 )
 
+// parseTag splits an amf struct tag into its components.
+// The tag format is: "name[|alias...][,omitempty]"
+// Names are separated by pipes; the optional ",omitempty" flag is at the end.
+func parseTag(tag string) (names []string, omitempty bool) {
+	if i := strings.Index(tag, ",omitempty"); i >= 0 {
+		omitempty = true
+		tag = tag[:i]
+	}
+	names = strings.Split(tag, "|")
+	return
+}
+
 // ReadFields populates the struct pointed to by target from the given
 // Object, using `amf` struct tags as property names. Tags may
-// contain comma-separated aliases (e.g. `amf:"fileSize,filesize"`); the
+// contain pipe-separated aliases (e.g. `amf:"fileSize|filesize"`); the
 // first matching name wins.
 //
-// Supported field types: float64, uint32, bool, string, *bool,
-// *struct (with amf tags), and map[int]T (where T is a struct with amf tags).
+// Supported field types: float64, uint16, uint32, int, bool, string, *bool,
+// *struct (with amf tags), []string, and map[int]T (where T is a struct with amf tags).
 func ReadFields(obj Object, target any) {
 	v := reflect.ValueOf(target).Elem()
 	t := v.Type()
@@ -23,7 +35,7 @@ func ReadFields(obj Object, target any) {
 		if tag == "" {
 			continue
 		}
-		names := strings.Split(tag, ",")
+		names, _ := parseTag(tag)
 		fv := v.Field(i)
 		switch fv.Kind() {
 		case reflect.Float64:
@@ -33,10 +45,24 @@ func ReadFields(obj Object, target any) {
 					break
 				}
 			}
+		case reflect.Uint16:
+			for _, name := range names {
+				if val := GetFloat64(obj, name); val != 0 {
+					fv.SetUint(uint64(val))
+					break
+				}
+			}
 		case reflect.Uint32:
 			for _, name := range names {
 				if val := GetFloat64(obj, name); val != 0 {
 					fv.SetUint(uint64(val))
+					break
+				}
+			}
+		case reflect.Int:
+			for _, name := range names {
+				if val := GetFloat64(obj, name); val != 0 {
+					fv.SetInt(int64(val))
 					break
 				}
 			}
@@ -69,6 +95,15 @@ func ReadFields(obj Object, target any) {
 						elem := reflect.New(fv.Type().Elem())
 						ReadFields(sub, elem.Interface())
 						fv.Set(elem)
+						break
+					}
+				}
+			}
+		case reflect.Slice:
+			if fv.Type().Elem().Kind() == reflect.String {
+				for _, name := range names {
+					if val := GetStringSlice(obj, name); val != nil {
+						fv.Set(reflect.ValueOf(val))
 						break
 					}
 				}
@@ -114,11 +149,12 @@ func readTrackIdInfoMap(obj Object, key string, fv reflect.Value) {
 }
 
 // WriteFields serializes the struct into an amf0.EcmaArray, using `amf`
-// struct tags as property names. When a tag contains comma-separated aliases,
-// only the first name is used for serialization. Zero-valued fields are omitted.
+// struct tags as property names. When a tag contains pipe-separated aliases,
+// only the first name is used for serialization. Fields with zero values
+// are included unless the tag contains ",omitempty".
 //
-// Supported field types: float64, uint32, bool, string, *bool,
-// *struct (with amf tags), and map[int]T (where T is a struct with amf tags).
+// Supported field types: float64, uint16, uint32, int, bool, string, *bool,
+// *struct (with amf tags), []string, and map[int]T (where T is a struct with amf tags).
 func WriteFields(source any) amf0.EcmaArray {
 	props := amf0.EcmaArray{}
 	v := reflect.ValueOf(source)
@@ -131,23 +167,32 @@ func WriteFields(source any) amf0.EcmaArray {
 		if tag == "" {
 			continue
 		}
-		name, _, _ := strings.Cut(tag, ",")
+		names, omitempty := parseTag(tag)
+		name := names[0]
 		fv := v.Field(i)
 		switch fv.Kind() {
 		case reflect.Float64:
-			if fv.Float() != 0 {
+			if !omitempty || fv.Float() != 0 {
 				props[name] = fv.Float()
 			}
-		case reflect.Uint32:
-			if fv.Uint() != 0 {
+		case reflect.Uint16:
+			if !omitempty || fv.Uint() != 0 {
 				props[name] = float64(fv.Uint())
 			}
+		case reflect.Uint32:
+			if !omitempty || fv.Uint() != 0 {
+				props[name] = float64(fv.Uint())
+			}
+		case reflect.Int:
+			if !omitempty || fv.Int() != 0 {
+				props[name] = float64(fv.Int())
+			}
 		case reflect.Bool:
-			if fv.Bool() {
-				props[name] = true
+			if !omitempty || fv.Bool() {
+				props[name] = fv.Bool()
 			}
 		case reflect.String:
-			if fv.String() != "" {
+			if !omitempty || fv.String() != "" {
 				props[name] = fv.String()
 			}
 		case reflect.Pointer:
@@ -158,6 +203,16 @@ func WriteFields(source any) amf0.EcmaArray {
 					props[name] = fv.Elem().Bool()
 				case reflect.Struct:
 					props[name] = WriteFields(fv.Interface())
+				}
+			}
+		case reflect.Slice:
+			if fv.Type().Elem().Kind() == reflect.String {
+				if !omitempty || fv.Len() > 0 {
+					arr := make(amf0.StrictArray, fv.Len())
+					for j := range fv.Len() {
+						arr[j] = fv.Index(j).String()
+					}
+					props[name] = arr
 				}
 			}
 		case reflect.Map:

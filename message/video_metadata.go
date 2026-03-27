@@ -32,30 +32,30 @@ type ColorInfo struct {
 
 // ColorConfig describes the color encoding parameters.
 type ColorConfig struct {
-	BitDepth                float64 `amf:"bitDepth"`
-	ColorPrimaries          float64 `amf:"colorPrimaries"`
-	TransferCharacteristics float64 `amf:"transferCharacteristics"`
-	MatrixCoefficients      float64 `amf:"matrixCoefficients"`
+	BitDepth                float64 `amf:"bitDepth,omitempty"`
+	ColorPrimaries          float64 `amf:"colorPrimaries,omitempty"`
+	TransferCharacteristics float64 `amf:"transferCharacteristics,omitempty"`
+	MatrixCoefficients      float64 `amf:"matrixCoefficients,omitempty"`
 }
 
 // HdrCll carries Content Light Level information (CEA-861.3).
 type HdrCll struct {
-	MaxFall float64 `amf:"maxFall"`
-	MaxCLL  float64 `amf:"maxCLL"`
+	MaxFall float64 `amf:"maxFall,omitempty"`
+	MaxCLL  float64 `amf:"maxCLL,omitempty"`
 }
 
 // HdrMdcv carries Mastering Display Color Volume metadata (SMPTE ST 2086).
 type HdrMdcv struct {
-	RedX         float64 `amf:"redX"`
-	RedY         float64 `amf:"redY"`
-	GreenX       float64 `amf:"greenX"`
-	GreenY       float64 `amf:"greenY"`
-	BlueX        float64 `amf:"blueX"`
-	BlueY        float64 `amf:"blueY"`
-	WhitePointX  float64 `amf:"whitePointX"`
-	WhitePointY  float64 `amf:"whitePointY"`
-	MaxLuminance float64 `amf:"maxLuminance"`
-	MinLuminance float64 `amf:"minLuminance"`
+	RedX         float64 `amf:"redX,omitempty"`
+	RedY         float64 `amf:"redY,omitempty"`
+	GreenX       float64 `amf:"greenX,omitempty"`
+	GreenY       float64 `amf:"greenY,omitempty"`
+	BlueX        float64 `amf:"blueX,omitempty"`
+	BlueY        float64 `amf:"blueY,omitempty"`
+	WhitePointX  float64 `amf:"whitePointX,omitempty"`
+	WhitePointY  float64 `amf:"whitePointY,omitempty"`
+	MaxLuminance float64 `amf:"maxLuminance,omitempty"`
+	MinLuminance float64 `amf:"minLuminance,omitempty"`
 }
 
 func (m VideoMetadata) String() string {

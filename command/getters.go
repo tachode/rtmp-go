@@ -2,56 +2,20 @@ package command
 
 import "github.com/tachode/rtmp-go/message"
 
-func GetString(obj message.Object, key string) string {
-	val, found := obj.Get(key)
-	if found {
-		if s, ok := message.ToString(val); ok {
-			return s
-		}
-	}
-	return ""
-}
+// GetString is shorthand for message.GetString.
+var GetString = message.GetString
 
-func GetFloat64(obj message.Object, key string) float64 {
-	val, found := obj.Get(key)
-	if found {
-		if f, ok := message.ToFloat64(val); ok {
-			return f
-		}
-	}
-	return 0
-}
+// GetFloat64 is shorthand for message.GetFloat64.
+var GetFloat64 = message.GetFloat64
 
-func GetBool(obj message.Object, key string) bool {
-	val, found := obj.Get(key)
-	if found {
-		if b, ok := message.ToBool(val); ok {
-			return b
-		}
-	}
-	return false
-}
+// GetBool is shorthand for message.GetBool.
+var GetBool = message.GetBool
 
-func GetStringSlice(obj message.Object, key string) []string {
-	val, found := obj.Get(key)
-	if !found {
-		return nil
-	}
-	items, ok := message.ToSlice(val)
-	if !ok {
-		return nil
-	}
-	result := make([]string, 0, len(items))
-	for _, item := range items {
-		if s, ok := message.ToString(item); ok {
-			result = append(result, s)
-		}
-	}
-	if len(result) == 0 {
-		return nil
-	}
-	return result
-}
+// GetStringSlice is shorthand for message.GetStringSlice.
+var GetStringSlice = message.GetStringSlice
+
+// GetStringMap is shorthand for message.GetStringMap.
+var GetStringMap = message.GetStringMap
 
 func GetFourCcInfoMap(obj message.Object, key string) FourCcInfoMap {
 	val, found := obj.Get(key)

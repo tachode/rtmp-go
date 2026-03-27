@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/tachode/rtmp-go/command"
+	"github.com/tachode/rtmp-go/data"
 	"github.com/tachode/rtmp-go/examples"
 	"github.com/tachode/rtmp-go/message"
 	"github.com/tachode/rtmp-go/usercontrol"
@@ -44,6 +45,15 @@ func main() {
 		case *message.VideoMessage:
 			log.Printf("<<< Video: timestamp=%d frameType=%v packetType=%v len=%d",
 				m.Metadata().Timestamp, m.FrameType, m.PacketType, len(m.Tracks[0].Payload))
+		case message.Data:
+			handler, err := data.FromDataMessage(m)
+			if err != nil {
+				log.Printf("<<< Data: handler=%s (unrecognized)", m.GetHandler())
+			} else if md, ok := handler.(*data.OnMetaData); ok {
+				log.Printf("<<< onMetaData: %+v", md)
+			} else {
+				log.Printf("<<< Data: %T: %+v", handler, handler)
+			}
 		case *message.UserControlMessage:
 			event, err := usercontrol.FromMessage(m)
 			if err != nil {

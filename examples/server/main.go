@@ -6,6 +6,7 @@ import (
 
 	rtmp "github.com/tachode/rtmp-go"
 	"github.com/tachode/rtmp-go/command"
+	"github.com/tachode/rtmp-go/data"
 	"github.com/tachode/rtmp-go/examples"
 	"github.com/tachode/rtmp-go/message"
 	"github.com/tachode/rtmp-go/usercontrol"
@@ -106,6 +107,16 @@ func handleConn(conn net.Conn) {
 				case *usercontrol.PingResponse:
 					log.Printf("Received ping response: timestamp=%d", e.Timestamp)
 				}
+			}
+
+		case message.Data:
+			handler, err := data.FromDataMessage(m)
+			if err != nil {
+				log.Printf("Received unrecognized data message: handler=%s", m.GetHandler())
+			} else if md, ok := handler.(*data.OnMetaData); ok {
+				log.Printf("Received onMetaData: %+v", md)
+			} else {
+				log.Printf("Received data message %T: %+v", handler, handler)
 			}
 		}
 

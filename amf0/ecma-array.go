@@ -11,6 +11,11 @@ func init() { RegisterType(new(EcmaArray)) }
 
 func (v EcmaArray) Type() Type { return EcmaArrayMarker }
 
+func (v EcmaArray) Get(key string) (obj any, found bool) {
+	obj, found = v[key]
+	return
+}
+
 func (v *EcmaArray) Read(r io.Reader) error {
 	var length uint32
 	err := binary.Read(r, binary.BigEndian, &length)

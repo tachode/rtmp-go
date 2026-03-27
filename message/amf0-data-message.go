@@ -60,3 +60,6 @@ func (m Amf0DataMessage) String() string {
 	return fmt.Sprintf("%v: %+v Handler=%v(%+v)", m.Type(),
 		m.MetadataFields, m.Handler, m.Parameters)
 }
+
+func (m Amf0DataMessage) GetHandler() string   { return m.Handler }
+func (m Amf0DataMessage) GetParameters() []any { return m.Parameters }

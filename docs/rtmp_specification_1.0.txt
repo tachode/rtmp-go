@@ -1,0 +1,343 @@
+Copyright Adobe Systems Incorporated                      H. Parmar, Ed.
+                                                      M. Thornburgh, Ed.
+                                                                   Adobe
+                                                       December 21, 2012
+                  Adobe’s Real Time Messaging Protocol
+Abstract
+   This memo describes Adobe’s Real Time Messaging Protocol (RTMP), an
+   application-level protocol designed for multiplexing and packetizing
+   multimedia transport streams (such as audio, video, and interactive
+   content) over a suitable transport protocol (such as TCP).
+Table of Contents
+   1.  Introduction . . . . . . . . . . . . . . . . . . . . . . . . .  3
+     1.1.  Terminology  . . . . . . . . . . . . . . . . . . . . . . .  3
+   2.  Contributors . . . . . . . . . . . . . . . . . . . . . . . . .  3
+   3.  Definitions  . . . . . . . . . . . . . . . . . . . . . . . . .  3
+   4.  Byte Order, Alignment, and Time Format . . . . . . . . . . . .  5
+   5.  RTMP Chunk Stream  . . . . . . . . . . . . . . . . . . . . . .  5
+     5.1.  Message Format . . . . . . . . . . . . . . . . . . . . . .  6
+     5.2.  Handshake  . . . . . . . . . . . . . . . . . . . . . . . .  7
+       5.2.1.  Handshake Sequence . . . . . . . . . . . . . . . . . .  7
+       5.2.2.  C0 and S0 Format . . . . . . . . . . . . . . . . . . .  7
+       5.2.3.  C1 and S1 Format . . . . . . . . . . . . . . . . . . .  8
+       5.2.4.  C2 and S2 Format . . . . . . . . . . . . . . . . . . .  8
+       5.2.5.  Handshake Diagram  . . . . . . . . . . . . . . . . . . 10
+     5.3.  Chunking . . . . . . . . . . . . . . . . . . . . . . . . . 11
+       5.3.1.  Chunk Format . . . . . . . . . . . . . . . . . . . . . 11
+         5.3.1.1.  Chunk Basic Header . . . . . . . . . . . . . . . . 12
+         5.3.1.2.  Chunk Message Header . . . . . . . . . . . . . . . 13
+           5.3.1.2.1.  Type 0 . . . . . . . . . . . . . . . . . . . . 14
+           5.3.1.2.2.  Type 1 . . . . . . . . . . . . . . . . . . . . 14
+           5.3.1.2.3.  Type 2 . . . . . . . . . . . . . . . . . . . . 15
+           5.3.1.2.4.  Type 3 . . . . . . . . . . . . . . . . . . . . 15
+           5.3.1.2.5.  Common Header Fields . . . . . . . . . . . . . 15
+         5.3.1.3.  Extended Timestamp . . . . . . . . . . . . . . . . 16
+       5.3.2.  Examples . . . . . . . . . . . . . . . . . . . . . . . 16
+         5.3.2.1.  Example 1  . . . . . . . . . . . . . . . . . . . . 16
+         5.3.2.2.  Example 2  . . . . . . . . . . . . . . . . . . . . 17
+     5.4.  Protocol Control Messages  . . . . . . . . . . . . . . . . 18
+       5.4.1.  Set Chunk Size (1) . . . . . . . . . . . . . . . . . . 19
+       5.4.2.  Abort Message (2)  . . . . . . . . . . . . . . . . . . 19
+       5.4.3.  Acknowledgement (3)  . . . . . . . . . . . . . . . . . 20
+Parmar & Thornburgh                                             [Page 1]
+                               Adobe RTMP                  December 2012
+7.2.1.  NetConnection Commands
+   The NetConnection manages a two-way connection between a client
+   application and the server.  In addition, it provides support for
+   asynchronous remote method calls.
+   The following commands can be sent on the NetConnection :
+   o  connect
+   o  call
+   o  close
+   o  createStream
+7.2.1.1.  connect
+   The client sends the connect command to the server to request
+   connection to a server application instance.
+   The command structure from the client to the server is as follows:
+    +----------------+---------+---------------------------------------+
+    |  Field Name    |  Type   |           Description                 |
+    +--------------- +---------+---------------------------------------+
+    | Command Name   | String  | Name of the command. Set to "connect".|
+    +----------------+---------+---------------------------------------+
+    | Transaction ID | Number  | Always set to 1.                      |
+    +----------------+---------+---------------------------------------+
+    | Command Object | Object  | Command information object which has  |
+    |                |         | the name-value pairs.                 |
+    +----------------+---------+---------------------------------------+
+    | Optional User  | Object  | Any optional information              |
+    | Arguments      |         |                                       |
+    +----------------+---------+---------------------------------------+
+Parmar & Thornburgh                                            [Page 29]
+                               Adobe RTMP                  December 2012
+   Following is the description of the name-value pairs used in Command
+                      Object of the connect command.
+   +-----------+--------+-----------------------------+----------------+
+   | Property  |  Type  |        Description          | Example Value  |
+   +-----------+--------+-----------------------------+----------------+
+   |   app     | String | The Server application name |    testapp     |
+   |           |        | the client is connected to. |                |
+   +-----------+--------+-----------------------------+----------------+
+   | flashver  | String | Flash Player version. It is |    FMSc/1.0    |
+   |           |        | the same string as returned |                |
+   |           |        | by the ApplicationScript    |                |
+   |           |        | getversion () function.     |                |
+   +-----------+--------+-----------------------------+----------------+
+   |  swfUrl   | String | URL of the source SWF file  | file://C:/     |
+   |           |        | making the connection.      | FlvPlayer.swf  |
+   +-----------+--------+-----------------------------+----------------+
+   |  tcUrl    | String | URL of the Server.          | rtmp://local   |
+   |           |        | It has the following format.| host:1935/test |
+   |           |        | protocol://servername:port/ | app/instance1  |
+   |           |        | appName/appInstance         |                |
+   +-----------+--------+-----------------------------+----------------+
+   |  fpad     | Boolean| True if proxy is being used.| true or false  |
+   +-----------+--------+-----------------------------+----------------+
+   |audioCodecs| Number | Indicates what audio codecs | SUPPORT_SND    |
+   |           |        | the client supports.        | _MP3           |
+   +-----------+--------+-----------------------------+----------------+
+   |videoCodecs| Number | Indicates what video codecs | SUPPORT_VID    |
+   |           |        | are supported.              | _SORENSON      |
+   +-----------+--------+-----------------------------+----------------+
+   |videoFunct-| Number | Indicates what special video| SUPPORT_VID    |
+   |ion        |        | functions are supported.    | _CLIENT_SEEK   |
+   +-----------+--------+-----------------------------+----------------+
+   |  pageUrl  | String | URL of the web page from    | http://        |
+   |           |        | where the SWF file was      | somehost/      |
+   |           |        | loaded.                     | sample.html    |
+   +-----------+--------+-----------------------------+----------------+
+   | object    | Number | AMF encoding method.        |     AMF3       |
+   | Encoding  |        |                             |                |
+   +-----------+--------+-----------------------------+----------------+
+Parmar & Thornburgh                                            [Page 30]
+                               Adobe RTMP                  December 2012
+                 Flag values for the audioCodecs property:
+    +----------------------+----------------------------+--------------+
+    |      Codec Flag      |          Usage             |     Value    |
+    +----------------------+----------------------------+--------------+
+    |  SUPPORT_SND_NONE    | Raw sound, no compression  |    0x0001    |
+    +----------------------+----------------------------+--------------+
+    |  SUPPORT_SND_ADPCM   | ADPCM compression          |    0x0002    |
+    +----------------------+----------------------------+--------------+
+    |  SUPPORT_SND_MP3     | mp3 compression            |    0x0004    |
+    +----------------------+----------------------------+--------------+
+    |  SUPPORT_SND_INTEL   | Not used                   |    0x0008    |
+    +----------------------+----------------------------+--------------+
+    |  SUPPORT_SND_UNUSED  | Not used                   |    0x0010    |
+    +----------------------+----------------------------+--------------+
+    |  SUPPORT_SND_NELLY8  | NellyMoser at 8-kHz        |    0x0020    |
+    |                      | compression                |              |
+    +----------------------+----------------------------+--------------+
+    |  SUPPORT_SND_NELLY   | NellyMoser compression     |    0x0040    |
+    |                      | (5, 11, 22, and 44 kHz)    |              |
+    +----------------------+----------------------------+--------------+
+    |  SUPPORT_SND_G711A   | G711A sound compression    |    0x0080    |
+    |                      | (Flash Media Server only)  |              |
+    +----------------------+----------------------------+--------------+
+    |  SUPPORT_SND_G711U   | G711U sound compression    |    0x0100    |
+    |                      | (Flash Media Server only)  |              |
+    +----------------------+----------------------------+--------------+
+    |  SUPPORT_SND_NELLY16 | NellyMouser at 16-kHz      |    0x0200    |
+    |                      | compression                |              |
+    +----------------------+----------------------------+--------------+
+    |  SUPPORT_SND_AAC     | Advanced audio coding      |    0x0400    |
+    |                      | (AAC) codec                |              |
+    +----------------------+----------------------------+--------------+
+    |  SUPPORT_SND_SPEEX   | Speex Audio                |    0x0800    |
+    +----------------------+----------------------------+--------------+
+    | SUPPORT_SND_ALL      | All RTMP-supported audio   |    0x0FFF    |
+    |                      | codecs                     |              |
+    +----------------------+----------------------------+--------------+
+Parmar & Thornburgh                                            [Page 31]
+                               Adobe RTMP                  December 2012
+                 Flag values for the videoCodecs Property:
+    +----------------------+----------------------------+--------------+
+    |      Codec Flag      |            Usage           |    Value     |
+    +----------------------+----------------------------+--------------+
+    |  SUPPORT_VID_UNUSED  | Obsolete value             |    0x0001    |
+    +----------------------+----------------------------+--------------+
+    |  SUPPORT_VID_JPEG    | Obsolete value             |    0x0002    |
+    +----------------------+----------------------------+--------------+
+    | SUPPORT_VID_SORENSON | Sorenson Flash video       |    0x0004    |
+    +----------------------+----------------------------+--------------+
+    | SUPPORT_VID_HOMEBREW | V1 screen sharing          |    0x0008    |
+    +----------------------+----------------------------+--------------+
+    | SUPPORT_VID_VP6 (On2)| On2 video (Flash 8+)       |    0x0010    |
+    +----------------------+----------------------------+--------------+
+    | SUPPORT_VID_VP6ALPHA | On2 video with alpha       |    0x0020    |
+    | (On2 with alpha      | channel                    |              |
+    | channel)             |                            |              |
+    +----------------------+----------------------------+--------------+
+    | SUPPORT_VID_HOMEBREWV| Screen sharing version 2   |    0x0040    |
+    | (screensharing v2)   | (Flash 8+)                 |              |
+    +----------------------+----------------------------+--------------+
+    | SUPPORT_VID_H264     | H264 video                 |    0x0080    |
+    +----------------------+----------------------------+--------------+
+    | SUPPORT_VID_ALL      | All RTMP-supported video   |    0x00FF    |
+    |                      | codecs                     |              |
+    +----------------------+----------------------------+--------------+
+                Flag values for the videoFunction property:
+    +----------------------+----------------------------+--------------+
+    |    Function Flag     |           Usage            |     Value    |
+    +----------------------+----------------------------+--------------+
+    | SUPPORT_VID_CLIENT   | Indicates that the client  |       1      |
+    | _SEEK                | can perform frame-accurate |              |
+    |                      | seeks.                     |              |
+    +----------------------+----------------------------+--------------+
+Parmar & Thornburgh                                            [Page 32]
+                               Adobe RTMP                  December 2012
+                 Values for the object encoding property:
+    +----------------------+----------------------------+--------------+
+    |    Encoding Type     |           Usage            |    Value     |
+    +----------------------+----------------------------+--------------+
+    |        AMF0          | AMF0 object encoding       |      0       |
+    |                      | supported by Flash 6 and   |              |
+    |                      | later                      |              |
+    +----------------------+----------------------------+--------------+
+    |        AMF3          | AMF3 encoding from         |      3       |
+    |                      | Flash 9 (AS3)              |              |
+    +----------------------+----------------------------+--------------+
+        The command structure from server to client is as follows:
+    +--------------+----------+----------------------------------------+
+    | Field Name   |   Type   |             Description                |
+    +--------------+----------+----------------------------------------+
+    | Command Name |  String  | _result or _error; indicates whether   |
+    |              |          | the response is result or error.       |
+    +--------------+----------+----------------------------------------+
+    | Transaction  |  Number  | Transaction ID is 1 for connect        |
+    | ID           |          | responses                              |
+    |              |          |                                        |
+    +--------------+----------+----------------------------------------+
+    | Properties   |  Object  | Name-value pairs that describe the     |
+    |              |          | properties(fmsver etc.) of the         |
+    |              |          | connection.                            |
+    +--------------+----------+----------------------------------------+
+    | Information  |  Object  | Name-value pairs that describe the     |
+    |              |          | response from|the server. ’code’,      |
+    |              |          | ’level’, ’description’ are names of few|
+    |              |          | among such information.                |
+    +--------------+----------+----------------------------------------+
+Parmar & Thornburgh                                            [Page 33]
+                               Adobe RTMP                  December 2012
+       +--------------+                              +-------------+
+       |    Client    |             |                |    Server   |
+       +------+-------+             |                +------+------+
+              |              Handshaking done               |
+              |                     |                       |
+              |                     |                       |
+              |                     |                       |
+              |                     |                       |
+              |----------- Command Message(connect) ------->|
+              |                                             |
+              |<------- Window Acknowledgement Size --------|
+              |                                             |
+              |<----------- Set Peer Bandwidth -------------|
+              |                                             |
+              |-------- Window Acknowledgement Size ------->|
+              |                                             |
+              |<------ User Control Message(StreamBegin) ---|
+              |                                             |
+              |<------------ Command Message ---------------|
+              |       (_result- connect response)           |
+              |                                             |
+                    Message flow in the connect command
+   The message flow during the execution of the command is:
+   1.  Client sends the connect command to the server to request to
+       connect with the server application instance.
+   2.  After receiving the connect command, the server sends the
+       protocol message ’Window Acknowledgement Size’ to the client.
+       The server also connects to the application mentioned in the
+       connect command.
+   3.  The server sends the protocol message ’Set Peer Bandwidth’ to the
+       client.
+   4.  The client sends the protocol message ’Window Acknowledgement
+       Size’ to the server after processing the protocol message ’Set
+       Peer Bandwidth’.
+   5.  The server sends an another protocol message of type User Control
+       Message(StreamBegin) to the client.
+   6.  The server sends the result command message informing the client
+       of the connection status (success/fail).  The command specifies
+       the transaction ID (always equal to 1 for the connect command).
+       The message also specifies the properties, such as Flash Media
+Parmar & Thornburgh                                            [Page 34]
+                               Adobe RTMP                  December 2012
+       Server version (string).  In addition it specificies other
+       connection response related information like level (string), code
+       (string), description (string), objectencoding (number), etc.
+7.2.1.2.  Call
+   The call method of the NetConnection object runs remote procedure
+   calls (RPC) at the receiving end.  The called RPC name is passed as a
+   parameter to the call command.
+   The command structure from the sender to the receiver is as follows:
+    +--------------+----------+----------------------------------------+
+    |Field Name    |   Type   |             Description                |
+    +--------------+----------+----------------------------------------+
+    | Procedure    |  String  | Name of the remote procedure that is   |
+    | Name         |          | called.                                |
+    +--------------+----------+----------------------------------------+
+    | Transaction  |  Number  | If a response is expected we give a    |
+    |              |          | transaction Id. Else we pass a value of|
+    | ID           |          | 0                                      |
+    +--------------+----------+----------------------------------------+
+    | Command      |  Object  | If there exists any command info this  |
+    | Object       |          | is set, else this is set to null type. |
+    +--------------+----------+----------------------------------------+
+    | Optional     |  Object  | Any optional arguments to be provided  |
+    | Arguments    |          |                                        |
+    +--------------+----------+----------------------------------------+
+           The command structure of the response is as follows:
+    +--------------+----------+----------------------------------------+
+    | Field Name   |   Type   |             Description                |
+    +--------------+----------+----------------------------------------+
+    | Command Name |  String  | Name of the command.                   |
+    |              |          |                                        |
+    +--------------+----------+----------------------------------------+
+    | Transaction  |  Number  | ID of the command, to which the        |
+    | ID           |          | response belongs.
+    +--------------+----------+----------------------------------------+
+    | Command      |  Object  | If there exists any command info this  |
+    | Object       |          | is set, else this is set to null type. |
+    +--------------+----------+----------------------------------------+
+    | Response     | Object   | Response from the method that was      |
+    |              |          | called.                                |
+    +------------------------------------------------------------------+
+Parmar & Thornburgh                                            [Page 35]
+                               Adobe RTMP                  December 2012
+7.2.1.3.  createStream
+   The client sends this command to the server to create a logical
+   channel for message communication The publishing of audio, video, and
+   metadata is carried out over stream channel created using the
+   createStream command.
+   NetConnection is the default communication channel, which has a
+   stream ID 0.  Protocol and a few command messages, including
+   createStream, use the default communication channel.
+    The command structure from the client to the server is as follows:
+    +--------------+----------+----------------------------------------+
+    | Field Name   |   Type   |             Description                |
+    +--------------+----------+----------------------------------------+
+    | Command Name |  String  | Name of the command. Set to            |
+    |              |          | "createStream".                        |
+    +--------------+----------+----------------------------------------+
+    | Transaction  |  Number  | Transaction ID of the command.         |
+    | ID           |          |                                        |
+    +--------------+----------+----------------------------------------+
+    | Command      |  Object  | If there exists any command info this  |
+    | Object       |          | is set, else this is set to null type. |
+    +--------------+----------+----------------------------------------+
+        The command structure from server to client is as follows:
+    +--------------+----------+----------------------------------------+
+    | Field Name   |   Type   |             Description                |
+    +--------------+----------+----------------------------------------+
+    | Command Name |  String  | _result or _error; indicates whether   |
+    |              |          | the response is result or error.       |
+    +--------------+----------+----------------------------------------+
+    | Transaction  |  Number  | ID of the command that response belongs|
+    | ID           |          | to.                                    |
+    +--------------+----------+----------------------------------------+
+    | Command      |  Object  | If there exists any command info this  |
+    | Object       |          | is set, else this is set to null type. |
+    +--------------+----------+----------------------------------------+
+    | Stream       |  Number  | The return value is either a stream ID |
+    | ID           |          | or an error information object.        |
+    +--------------+----------+----------------------------------------+
+Parmar & Thornburgh                                            [Page 36]
+

@@ -2,6 +2,8 @@ package command
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/tachode/rtmp-go/amf0"
 	"github.com/tachode/rtmp-go/message"
@@ -31,6 +33,27 @@ const (
 	SupportSndAll     AudioCodecFlag = 0x0FFF
 )
 
+func (f AudioCodecFlag) String() string {
+	names := []struct {
+		flag AudioCodecFlag
+		name string
+	}{
+		{SupportSndNone, "PCM"},
+		{SupportSndADPCM, "ADPCM"},
+		{SupportSndMP3, "MP3"},
+		{SupportSndIntel, "PCM-LE"},
+		{SupportSndUnused, "Unused"},
+		{SupportSndNelly8, "Nelly8k"},
+		{SupportSndNelly, "Nelly"},
+		{SupportSndG711A, "G711A"},
+		{SupportSndG711U, "G711U"},
+		{SupportSndNelly16, "Nelly16k"},
+		{SupportSndAAC, "AAC"},
+		{SupportSndSpeex, "Speex"},
+	}
+	return bitmaskString(uint64(f), names)
+}
+
 // VideoCodecFlag is a bitmask indicating supported video codecs.
 // Each bit corresponds to a message.VideoCodecId value.
 type VideoCodecFlag uint16
@@ -47,15 +70,45 @@ const (
 	SupportVidAll       VideoCodecFlag = 0x00FF
 )
 
+func (f VideoCodecFlag) String() string {
+	names := []struct {
+		flag VideoCodecFlag
+		name string
+	}{
+		{SupportVidUnused, "Unused"},
+		{SupportVidJPEG, "JPEG"},
+		{SupportVidSorenson, "Sorenson"},
+		{SupportVidHomebrew, "Screen"},
+		{SupportVidVP6, "VP6"},
+		{SupportVidVP6Alpha, "VP6Alpha"},
+		{SupportVidHomebrewV, "ScreenV2"},
+		{SupportVidH264, "H264"},
+	}
+	return bitmaskString(uint64(f), names)
+}
+
 // VideoFunction is a bitmask indicating supported video functions.
 type VideoFunction uint16
 
 const (
-	SupportVidClientSeek              VideoFunction = 0x0001
-	SupportVidClientHDR               VideoFunction = 0x0002
-	SupportVidClientVideoPacketTypeMD VideoFunction = 0x0004
-	SupportVidClientLargeScaleTile    VideoFunction = 0x0008
+	SupportVidClientSeek                    VideoFunction = 0x0001
+	SupportVidClientHDR                     VideoFunction = 0x0002
+	SupportVidClientVideoPacketTypeMetadata VideoFunction = 0x0004
+	SupportVidClientLargeScaleTile          VideoFunction = 0x0008
 )
+
+func (f VideoFunction) String() string {
+	names := []struct {
+		flag VideoFunction
+		name string
+	}{
+		{SupportVidClientSeek, "Seek"},
+		{SupportVidClientHDR, "HDR"},
+		{SupportVidClientVideoPacketTypeMetadata, "Metadata"},
+		{SupportVidClientLargeScaleTile, "LargeScaleTile"},
+	}
+	return bitmaskString(uint64(f), names)
+}
 
 // FourCcInfoMask defines capability flags for a FourCC codec.
 type FourCcInfoMask uint16
@@ -65,6 +118,18 @@ const (
 	FourCcInfoCanEncode  FourCcInfoMask = 0x02
 	FourCcInfoCanForward FourCcInfoMask = 0x04
 )
+
+func (f FourCcInfoMask) String() string {
+	names := []struct {
+		flag FourCcInfoMask
+		name string
+	}{
+		{FourCcInfoCanDecode, "Decode"},
+		{FourCcInfoCanEncode, "Encode"},
+		{FourCcInfoCanForward, "Forward"},
+	}
+	return bitmaskString(uint64(f), names)
+}
 
 // FourCcInfoMap maps FourCC codec strings to FourCcInfoMask capability flags.
 // A key of "*" acts as a wildcard for any codec.
@@ -80,9 +145,23 @@ const (
 	CapsExTimestampNanoOffset CapsExMask = 0x08
 )
 
+func (f CapsExMask) String() string {
+	names := []struct {
+		flag CapsExMask
+		name string
+	}{
+		{CapsExReconnect, "Reconnect"},
+		{CapsExMultitrack, "Multitrack"},
+		{CapsExModEx, "ModEx"},
+		{CapsExTimestampNanoOffset, "TimestampNanoOffset"},
+	}
+	return bitmaskString(uint64(f), names)
+}
+
 // ObjectEncoding indicates the AMF encoding method.
 type ObjectEncoding int
 
+//go:generate stringer -type=ObjectEncoding -trimprefix=ObjectEncoding
 const (
 	ObjectEncodingAMF0 ObjectEncoding = 0
 	ObjectEncodingAMF3 ObjectEncoding = 3
@@ -246,4 +325,26 @@ func fourCcInfoMapToAMF(m FourCcInfoMap) amf0.Object {
 		o[k] = float64(v)
 	}
 	return o
+}
+
+// bitmaskString is a generic helper for formatting bitmask types as
+// pipe-separated flag names. T is the bitmask type.
+func bitmaskString[T ~uint16](val uint64, names []struct {
+	flag T
+	name string
+}) string {
+	if val == 0 {
+		return "0"
+	}
+	var parts []string
+	for _, n := range names {
+		if val&uint64(n.flag) != 0 {
+			parts = append(parts, n.name)
+			val &^= uint64(n.flag)
+		}
+	}
+	if val != 0 {
+		parts = append(parts, fmt.Sprintf("0x%x", val))
+	}
+	return strings.Join(parts, "|")
 }

@@ -297,8 +297,8 @@ func (m *VideoMessage) unmarshalERTMP(data []byte) error {
 			pos = trackEnd
 
 		case ERTMPVideoPacketTypeCodedFrames:
-			// CodedFrames for AVC/HEVC includes SI24 compositionTimeOffset
-			if track.CodecId == VideoCodecIdAvc_ERTMP || track.CodecId == VideoCodecIdHevc_ERTMP {
+			// CodedFrames for AVC/HEVC/VVC includes SI24 compositionTimeOffset
+			if track.CodecId == VideoCodecIdAvc_ERTMP || track.CodecId == VideoCodecIdHevc_ERTMP || track.CodecId == VideoCodecIdVVC_ERTMP {
 				if pos+3 > trackEnd {
 					return ErrShortMessage
 				}
@@ -462,8 +462,8 @@ func (m VideoMessage) marshalTrackBody(out []byte, track VideoTrack) []byte {
 		out = append(out, track.Payload...)
 
 	case ERTMPVideoPacketTypeCodedFrames:
-		// AVC/HEVC include SI24 compositionTimeOffset
-		if track.CodecId == VideoCodecIdAvc_ERTMP || track.CodecId == VideoCodecIdHevc_ERTMP {
+		// AVC/HEVC/VVC include SI24 compositionTimeOffset
+		if track.CodecId == VideoCodecIdAvc_ERTMP || track.CodecId == VideoCodecIdHevc_ERTMP || track.CodecId == VideoCodecIdVVC_ERTMP {
 			ct := uint32(track.CompositionTime) & 0xFF_FF_FF
 			out = append(out, byte(ct>>16), byte(ct>>8), byte(ct))
 		}

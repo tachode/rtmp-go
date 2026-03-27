@@ -274,3 +274,94 @@ func TestFourCcInfoMask_Values(t *testing.T) {
 		t.Errorf("FourCcInfoCanForward: got %#x, want 0x04", FourCcInfoCanForward)
 	}
 }
+
+func TestAudioCodecFlag_String(t *testing.T) {
+	tests := []struct {
+		val  AudioCodecFlag
+		want string
+	}{
+		{0, "0"},
+		{SupportSndMP3, "MP3"},
+		{SupportSndAAC, "AAC"},
+		{SupportSndMP3 | SupportSndAAC, "MP3|AAC"},
+		{SupportSndAll, "PCM|ADPCM|MP3|PCM-LE|Unused|Nelly8k|Nelly|G711A|G711U|Nelly16k|AAC|Speex"},
+		{SupportSndAAC | AudioCodecFlag(0x8000), "AAC|0x8000"},
+	}
+	for _, tt := range tests {
+		if got := tt.val.String(); got != tt.want {
+			t.Errorf("AudioCodecFlag(%#x).String() = %q, want %q", uint16(tt.val), got, tt.want)
+		}
+	}
+}
+
+func TestVideoCodecFlag_String(t *testing.T) {
+	tests := []struct {
+		val  VideoCodecFlag
+		want string
+	}{
+		{0, "0"},
+		{SupportVidH264, "H264"},
+		{SupportVidSorenson | SupportVidH264, "Sorenson|H264"},
+		{SupportVidAll, "Unused|JPEG|Sorenson|Screen|VP6|VP6Alpha|ScreenV2|H264"},
+		{SupportVidVP6 | VideoCodecFlag(0x4000), "VP6|0x4000"},
+	}
+	for _, tt := range tests {
+		if got := tt.val.String(); got != tt.want {
+			t.Errorf("VideoCodecFlag(%#x).String() = %q, want %q", uint16(tt.val), got, tt.want)
+		}
+	}
+}
+
+func TestVideoFunction_String(t *testing.T) {
+	tests := []struct {
+		val  VideoFunction
+		want string
+	}{
+		{0, "0"},
+		{SupportVidClientSeek, "Seek"},
+		{SupportVidClientSeek | SupportVidClientHDR, "Seek|HDR"},
+		{SupportVidClientSeek | SupportVidClientHDR | SupportVidClientVideoPacketTypeMetadata | SupportVidClientLargeScaleTile, "Seek|HDR|Metadata|LargeScaleTile"},
+		{SupportVidClientSeek | VideoFunction(0x0100), "Seek|0x100"},
+	}
+	for _, tt := range tests {
+		if got := tt.val.String(); got != tt.want {
+			t.Errorf("VideoFunction(%#x).String() = %q, want %q", uint16(tt.val), got, tt.want)
+		}
+	}
+}
+
+func TestFourCcInfoMask_String(t *testing.T) {
+	tests := []struct {
+		val  FourCcInfoMask
+		want string
+	}{
+		{0, "0"},
+		{FourCcInfoCanDecode, "Decode"},
+		{FourCcInfoCanDecode | FourCcInfoCanEncode, "Decode|Encode"},
+		{FourCcInfoCanDecode | FourCcInfoCanEncode | FourCcInfoCanForward, "Decode|Encode|Forward"},
+		{FourCcInfoCanForward | FourCcInfoMask(0x80), "Forward|0x80"},
+	}
+	for _, tt := range tests {
+		if got := tt.val.String(); got != tt.want {
+			t.Errorf("FourCcInfoMask(%#x).String() = %q, want %q", uint16(tt.val), got, tt.want)
+		}
+	}
+}
+
+func TestCapsExMask_String(t *testing.T) {
+	tests := []struct {
+		val  CapsExMask
+		want string
+	}{
+		{0, "0"},
+		{CapsExReconnect, "Reconnect"},
+		{CapsExMultitrack | CapsExModEx, "Multitrack|ModEx"},
+		{CapsExReconnect | CapsExMultitrack | CapsExModEx | CapsExTimestampNanoOffset, "Reconnect|Multitrack|ModEx|TimestampNanoOffset"},
+		{CapsExModEx | CapsExMask(0xF0), "ModEx|0xf0"},
+	}
+	for _, tt := range tests {
+		if got := tt.val.String(); got != tt.want {
+			t.Errorf("CapsExMask(%#x).String() = %q, want %q", uint16(tt.val), got, tt.want)
+		}
+	}
+}

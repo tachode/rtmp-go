@@ -82,6 +82,20 @@ func TestVideoMessage_Marshal(t *testing.T) {
 			expected: []byte{0xA1, 0x68, 0x76, 0x63, 0x31, 0x00, 0x00, 0x28, 0x01},
 		},
 		{
+			name: "E-RTMP VVC CodedFrames with CT",
+			msg: message.VideoMessage{
+				FrameType:  message.VideoFrameTypeInterframe,
+				PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+				Tracks: []message.VideoTrack{{
+					CodecId:         message.VideoCodecIdVVC_ERTMP,
+					CompositionTime: 40,
+					Payload:         []byte{0x01},
+				}},
+			},
+			// [1:1][010:3][0001:4] = 0xA1, FOURCC "vvc1", SI24(40), payload
+			expected: []byte{0xA1, 0x76, 0x76, 0x63, 0x31, 0x00, 0x00, 0x28, 0x01},
+		},
+		{
 			name: "E-RTMP VP9 CodedFramesX (CT implicit 0)",
 			msg: message.VideoMessage{
 				FrameType:  message.VideoFrameTypeKeyframe,
@@ -256,6 +270,50 @@ func TestVideoMessage_ERTMP_CodedFrames_WithCompositionTime(t *testing.T) {
 		require.Len(t, parsed.Tracks, 1)
 		assert.Equal(t, int32(-1), parsed.Tracks[0].CompositionTime)
 		assert.Equal(t, []byte{0x03}, parsed.Tracks[0].Payload)
+	})
+
+	t.Run("VVC positive CT", func(t *testing.T) {
+		msg := message.VideoMessage{
+			FrameType:  message.VideoFrameTypeInterframe,
+			PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+			Tracks: []message.VideoTrack{{
+				CodecId:         message.VideoCodecIdVVC_ERTMP,
+				CompositionTime: 80,
+				Payload:         []byte{0x05, 0x06},
+			}},
+		}
+		data, err := msg.Marshal()
+		require.NoError(t, err)
+
+		var parsed message.VideoMessage
+		err = parsed.Unmarshal(data)
+		require.NoError(t, err)
+
+		require.Len(t, parsed.Tracks, 1)
+		assert.Equal(t, int32(80), parsed.Tracks[0].CompositionTime)
+		assert.Equal(t, []byte{0x05, 0x06}, parsed.Tracks[0].Payload)
+	})
+
+	t.Run("VVC negative CT", func(t *testing.T) {
+		msg := message.VideoMessage{
+			FrameType:  message.VideoFrameTypeKeyframe,
+			PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+			Tracks: []message.VideoTrack{{
+				CodecId:         message.VideoCodecIdVVC_ERTMP,
+				CompositionTime: -10,
+				Payload:         []byte{0x07},
+			}},
+		}
+		data, err := msg.Marshal()
+		require.NoError(t, err)
+
+		var parsed message.VideoMessage
+		err = parsed.Unmarshal(data)
+		require.NoError(t, err)
+
+		require.Len(t, parsed.Tracks, 1)
+		assert.Equal(t, int32(-10), parsed.Tracks[0].CompositionTime)
+		assert.Equal(t, []byte{0x07}, parsed.Tracks[0].Payload)
 	})
 
 	t.Run("VP9 no CT", func(t *testing.T) {

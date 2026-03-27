@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"reflect"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -255,6 +254,7 @@ func (c *connection) readMessages() {
 	bytesRead := 0
 	lastAck := 0
 	remoteWindowSize := 2_500_000 // Everyone seems to use this value as the default
+	localWindowSize := uint32(2_500_000)
 	currentChunkSize := uint32(128)
 	for {
 		chunkStreamId := uint32(0)
@@ -267,7 +267,7 @@ func (c *connection) readMessages() {
 		case 0:
 			chunkStreamId = uint32(basicHeader[1] + 64)
 		case 1:
-			chunkStreamId = (uint32(basicHeader[1]) << 8) + uint32(basicHeader[2]) + 64
+			chunkStreamId = uint32(basicHeader[2])<<8 + uint32(basicHeader[1]) + 64
 		default:
 			chunkStreamId = uint32(basicHeader[0] & 0x3F)
 		}
@@ -293,13 +293,41 @@ func (c *connection) readMessages() {
 				for _, cs := range chunkStream {
 					cs.MaxChunkSize = currentChunkSize
 				}
+			case *message.AbortMessage:
+				// RTMP §5.4.2: discard any partially received message
+				// on the indicated chunk stream.
+				if abortCs := chunkStream[m.ChunkStreamId]; abortCs != nil {
+					abortCs.Abort()
+				}
+			case *message.WindowAcknowledgementSize:
+				// RTMP §5.4.4: the peer is telling us to use this window
+				// size when deciding how often to send Acknowledgement messages.
+				remoteWindowSize = int(m.AcknowledgementWindowSize)
+			case *message.SetPeerBandwidth:
+				// RTMP §5.4.5: the peer is constraining our output bandwidth.
+				// Apply the limit type and respond with WindowAcknowledgementSize.
+				newSize := m.WindowSize
+				switch m.LimitType {
+				case message.BandwidthLimitHard:
+					localWindowSize = newSize
+				case message.BandwidthLimitSoft:
+					if newSize < localWindowSize {
+						localWindowSize = newSize
+					}
+				case message.BandwidthLimitDynamic:
+					// Treat as Hard if previous was Hard; the spec is unclear
+					// so we conservatively apply the new value.
+					localWindowSize = newSize
+				}
+				c.WriteMessage(&message.WindowAcknowledgementSize{
+					AcknowledgementWindowSize: localWindowSize,
+				}, 2)
 			case *message.UserControlMessage:
 				if m.Event == message.UserControlPingRequest {
 					pong := *m
 					pong.Event = message.UserControlPingResponse
 					c.WriteMessage(&pong, 2)
 				}
-				// TODO -- we may need to act on other message types here
 			}
 			c.inboundQueue <- msg
 		}
@@ -381,9 +409,10 @@ func (c *connection) clientHandshake() error {
 	if err != nil {
 		return err
 	}
-	if s2.Time != c1.Time || !reflect.DeepEqual(s2.Random, c1.Random) {
-		return ErrHandshakeMismatch
-	}
+
+	// Per RTMP Errata §3, proprietary extensions (e.g. RTMPE) may modify
+	// the random bytes in C2/S2 for key exchange or feature enablement.
+	// We SHOULD NOT fail the connection on a non-identical echo.
 
 	return nil
 }
@@ -439,9 +468,10 @@ func (c *connection) serverHandshake() error {
 	if err != nil {
 		return err
 	}
-	if c2.Time != s1.Time || !reflect.DeepEqual(c2.Random, s1.Random) {
-		return ErrHandshakeMismatch
-	}
+
+	// Per RTMP Errata §3, proprietary extensions (e.g. RTMPE) may modify
+	// the random bytes in C2/S2 for key exchange or feature enablement.
+	// We SHOULD NOT fail the connection on a non-identical echo.
 
 	return nil
 }

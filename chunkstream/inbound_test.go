@@ -305,3 +305,55 @@ func Test_Second_Message_Headertype_Continuation(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, msg2, msg)
 }
+
+func Test_ExtendedTimestamp_MultichunkRoundTrip(t *testing.T) {
+	// A message whose timestamp exceeds 0xFFFFFF triggers extended timestamps.
+	// When the message is larger than the chunk size, continuation (type 3) chunks
+	// must also carry the 4-byte extended timestamp. This test verifies the
+	// full outbound→inbound round-trip for that case.
+	outbound := chunkstream.NewOutboundChunkStream(10, mc)
+	outbound.MaxChunkSize = 16
+
+	payload := []byte("extended timestamp data that exceeds chunk size")
+	msg1 := &message.VideoMessage{
+		MetadataFields: message.MetadataFields{
+			Timestamp: 0x1234567, // > 0xFFFFFF, triggers extended timestamp
+			StreamId:  1,
+		},
+		PacketType: message.ERTMPVideoPacketTypeCodedFrames,
+		Tracks: []message.VideoTrack{{
+			Payload: payload,
+		}},
+	}
+
+	chunks, err := outbound.Marshal(msg1)
+	require.NoError(t, err)
+	require.Greater(t, len(chunks), 1, "message should span multiple chunks")
+
+	// Verify the continuation chunks are type 3 with extended timestamp bytes
+	for i, chunk := range chunks[1:] {
+		assert.Equal(t, chunkstream.HeaderTypeContinuation, chunkstream.HeaderType(chunk[0]>>6),
+			"chunk %d should be type 3 continuation", i+1)
+	}
+
+	// Round-trip through inbound
+	var data bytes.Buffer
+	for _, chunk := range chunks {
+		data.Write(chunk)
+	}
+
+	inbound := chunkstream.NewInboundChunkStream(10, mc)
+	inbound.MaxChunkSize = 16
+
+	var result message.Message
+	for result == nil {
+		var m int
+		m, result, err = inbound.Read(&data)
+		require.NoError(t, err, "Read should not return an error")
+		require.Greater(t, m, 0, "should read at least one byte per chunk")
+	}
+
+	msg1.MetadataFields.Length = uint32(len(payload) + 1) // +1 for the video header byte
+	assert.Equal(t, msg1, result, "round-tripped message should match original")
+	assert.Equal(t, 0, data.Len(), "all bytes should be consumed")
+}

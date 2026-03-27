@@ -27,6 +27,9 @@ func (m *SetChunkSize) Unmarshal(data []byte) error {
 		return ErrShortMessage
 	}
 	m.ChunkSize = binary.BigEndian.Uint32(data) & 0x7fffffff
+	if m.ChunkSize < 1 || m.ChunkSize > 0xFFFFFF {
+		return ErrInvalidChunkSize
+	}
 	return nil
 }
 

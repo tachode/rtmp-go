@@ -65,3 +65,10 @@ func (i *Inbound) Read(r io.Reader) (n int, msg message.Message, err error) {
 
 	return
 }
+
+// Abort discards any partially received message on this chunk stream,
+// as required by RTMP §5.4.2 when an Abort Message is received.
+func (i *Inbound) Abort() {
+	i.data = nil
+	i.unreadData = nil
+}

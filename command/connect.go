@@ -185,6 +185,10 @@ type Connect struct {
 	VideoFourCcInfoMap FourCcInfoMap // Per-codec capability flags for video codecs.
 	AudioFourCcInfoMap FourCcInfoMap // Per-codec capability flags for audio codecs.
 	CapsEx             CapsExMask    `amf:"capsEx,omitempty"` // Extended capabilities bitmask.
+
+	// Per RTMP Errata §8.1.5, the connect command can accept zero or more
+	// additional arguments of any AMF types following the Command Object.
+	OptionalUserArguments []any
 }
 
 func (c Connect) CommandName() string { return "connect" }
@@ -201,11 +205,22 @@ func (c *Connect) FromMessageCommand(cmd message.Command) error {
 	obj := cmd.GetObject()
 	c.VideoFourCcInfoMap = GetFourCcInfoMap(obj, "videoFourCcInfoMap")
 	c.AudioFourCcInfoMap = GetFourCcInfoMap(obj, "audioFourCcInfoMap")
+
+	// Per RTMP Errata §8.1.5, capture any additional user arguments
+	// following the Command Object.
+	if params := cmd.GetParameters(); len(params) > 0 {
+		c.OptionalUserArguments = params
+	}
 	return nil
 }
 
 func (c *Connect) ToMessageCommand() (message.Command, error) {
 	cmd := message.BuildCommand(c.CommandName(), c)
+
+	// Per RTMP Errata §8.1.5, write any additional user arguments.
+	if len(c.OptionalUserArguments) > 0 {
+		cmd.Parameters = c.OptionalUserArguments
+	}
 
 	// FourCcInfoMap fields use a custom type not handled by WriteFields
 	if len(c.VideoFourCcInfoMap) > 0 {

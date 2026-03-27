@@ -47,7 +47,7 @@ func (h ChunkHeader) Write(w io.Writer) (n int, err error) {
 		}
 	case h.ChunkStreamId <= 65599:
 		// Chunk basic header 3: 3 bytes
-		m, err = w.Write([]byte{byte(h.Type<<6) | 1, byte((h.ChunkStreamId - 64) >> 8), byte(h.ChunkStreamId - 64)})
+		m, err = w.Write([]byte{byte(h.Type<<6) | 1, byte(h.ChunkStreamId - 64), byte((h.ChunkStreamId - 64) >> 8)})
 		n += m
 		if err != nil {
 			return
@@ -159,7 +159,7 @@ func (h *ChunkHeader) Read(r io.Reader) (n int, err error) {
 			return
 		}
 		n += m
-		h.ChunkStreamId = 64 + uint32(basicHeader[1])<<8 + uint32(basicHeader[2])
+		h.ChunkStreamId = 64 + uint32(basicHeader[2])<<8 + uint32(basicHeader[1])
 	}
 
 	switch h.Type {
@@ -197,7 +197,12 @@ func (h *ChunkHeader) Read(r io.Reader) (n int, err error) {
 		h.TimestampIsDelta = true
 	}
 
-	if h.Timestamp == ExtendedTimestampMarker {
+	// For types 0/1/2 the 3-byte field is at most 0xFFFFFF so >= is equivalent
+	// to ==. For type 3 (continuation), h.Timestamp retains the value from the
+	// previous Read; if extended timestamps were in use, that value will be
+	// >= 0xFFFFFF, and we must consume the 4-byte extended timestamp that peers
+	// (ffmpeg, OBS, librtmp) send on every continuation chunk.
+	if h.Timestamp >= ExtendedTimestampMarker {
 		var extendedTimestamp [4]byte
 		if m, err = r.Read(extendedTimestamp[:]); err != nil {
 			return

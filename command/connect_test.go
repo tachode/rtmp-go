@@ -365,3 +365,69 @@ func TestCapsExMask_String(t *testing.T) {
 		}
 	}
 }
+
+func TestConnect_OptionalUserArguments(t *testing.T) {
+	// Per RTMP Errata §8.1.5, the connect command can carry zero or more
+	// additional arguments of any AMF types after the Command Object.
+	original := &Connect{
+		Transaction: 1,
+		App:         "live",
+		TcUrl:       "rtmp://localhost/live",
+		OptionalUserArguments: []any{
+			"authToken123",
+			"user",
+			"password",
+			float64(42),
+		},
+	}
+
+	cmd, err := original.ToMessageCommand()
+	if err != nil {
+		t.Fatal("ToMessageCommand:", err)
+	}
+
+	// Verify the parameters are on the wire message
+	amfCmd := cmd.(*message.Amf0CommandMessage)
+	if len(amfCmd.Parameters) != 4 {
+		t.Fatalf("expected 4 parameters on wire, got %d", len(amfCmd.Parameters))
+	}
+
+	// Round-trip: parse them back
+	parsed := &Connect{}
+	err = parsed.FromMessageCommand(cmd)
+	if err != nil {
+		t.Fatal("FromMessageCommand:", err)
+	}
+
+	if len(parsed.OptionalUserArguments) != 4 {
+		t.Fatalf("expected 4 optional args, got %d", len(parsed.OptionalUserArguments))
+	}
+	if !reflect.DeepEqual(parsed.OptionalUserArguments, original.OptionalUserArguments) {
+		t.Errorf("OptionalUserArguments mismatch:\n  got  %v\n  want %v",
+			parsed.OptionalUserArguments, original.OptionalUserArguments)
+	}
+}
+
+func TestConnect_NoOptionalUserArguments(t *testing.T) {
+	// Verify that a connect command without optional args round-trips cleanly.
+	original := &Connect{
+		Transaction: 1,
+		App:         "live",
+		TcUrl:       "rtmp://localhost/live",
+	}
+
+	cmd, err := original.ToMessageCommand()
+	if err != nil {
+		t.Fatal("ToMessageCommand:", err)
+	}
+
+	parsed := &Connect{}
+	err = parsed.FromMessageCommand(cmd)
+	if err != nil {
+		t.Fatal("FromMessageCommand:", err)
+	}
+
+	if len(parsed.OptionalUserArguments) != 0 {
+		t.Errorf("expected no optional args, got %d", len(parsed.OptionalUserArguments))
+	}
+}

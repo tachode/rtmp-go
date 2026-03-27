@@ -2,7 +2,8 @@ package command
 
 import "github.com/tachode/rtmp-go/message"
 
-// NetStream.deleteStream() command
+// NetConnection.deleteStream() command (per RTMP Errata §8.3, this is a
+// NetConnection command sent on Message Stream ID 0, not a NetStream command).
 
 func init() { RegisterCommand(new(DeleteStream)) }
 

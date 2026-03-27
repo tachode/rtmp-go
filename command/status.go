@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/tachode/rtmp-go/amf0"
+	"github.com/tachode/rtmp-go/message"
 )
 
 type Level string
@@ -57,6 +58,7 @@ type Status struct {
 	Level       Level
 	Code        StatusCode
 	Description string
+	TcUrl       string // Target URL for reconnect requests.
 }
 
 func (s Status) Error() string {
@@ -139,10 +141,31 @@ func NewStatus(code StatusCode, description ...string) Status {
 	}
 }
 
-func (s Status) ToObject() amf0.Object {
-	return amf0.Object{
-		"level":       s.Level,
-		"code":        s.Code,
-		"description": s.Description,
+func NewReconnectStatus(tcUrl string) Status {
+	return Status{
+		Level: LevelStatus,
+		Code:  NetConnectionConnectReconnectRequest,
+		TcUrl: tcUrl,
 	}
+}
+
+func (s *Status) FromObject(obj message.Object) {
+	s.Level = Level(GetString(obj, "level"))
+	s.Code = StatusCode(GetString(obj, "code"))
+	s.Description = GetString(obj, "description")
+	s.TcUrl = GetString(obj, "tcUrl")
+}
+
+func (s Status) ToObject() amf0.Object {
+	obj := amf0.Object{
+		"level": s.Level,
+		"code":  s.Code,
+	}
+	if len(s.Description) > 0 {
+		obj["description"] = s.Description
+	}
+	if len(s.TcUrl) > 0 {
+		obj["tcUrl"] = s.TcUrl
+	}
+	return obj
 }

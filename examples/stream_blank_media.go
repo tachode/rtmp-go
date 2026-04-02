@@ -12,7 +12,7 @@ import (
 // StreamBlankMedia sends a continuous stream of silent AAC audio at 48kHz and
 // black H.264 keyframes at 24fps on the given RTMP connection and chunk stream.
 // It blocks until the stop channel is closed.
-func StreamBlankMedia(rtmpConn rtmp.Conn, chunkStream int, streamId uint32, stop <-chan struct{}) {
+func StreamBlankMedia(rtmpConn rtmp.Conn, chunkStream int, audioStreamId, videoStreamId uint32, stop <-chan struct{}) {
 	// AAC AudioSpecificConfig: AAC-LC (2), 48kHz (3), Stereo (2)
 	aacConfig := []byte{0x11, 0x90}
 
@@ -86,7 +86,7 @@ func StreamBlankMedia(rtmpConn rtmp.Conn, chunkStream int, streamId uint32, stop
 		return
 	}
 
-	log.Printf("Started streaming blank media on stream %d", streamId)
+	log.Printf("Started streaming blank media on audio stream %d, video stream %d", audioStreamId, videoStreamId)
 
 	// Audio: 48000 Hz / 1024 samples per frame ~ 46.875 fps
 	// Video: 24 fps
@@ -103,12 +103,12 @@ func StreamBlankMedia(rtmpConn rtmp.Conn, chunkStream int, streamId uint32, stop
 	for {
 		select {
 		case <-stop:
-			log.Printf("Stopping stream on stream %d", streamId)
+			log.Printf("Stopping stream on audio stream %d, video stream %d", audioStreamId, videoStreamId)
 			return
 		case <-audioTicker.C:
 			audioTs := uint32(audioSamples * 1000 / 48000)
 			err := rtmpConn.WriteMessage(&message.AudioMessage{
-				MetadataFields: message.MetadataFields{StreamId: streamId, Timestamp: audioTs},
+				MetadataFields: message.MetadataFields{StreamId: audioStreamId, Timestamp: audioTs},
 				PacketType:     message.ERTMPAudioPacketTypeCodedFrames,
 				Rate:           message.AudioRate44kHz,
 				SampleSize:     message.AudioSize16Bit,
@@ -123,7 +123,7 @@ func StreamBlankMedia(rtmpConn rtmp.Conn, chunkStream int, streamId uint32, stop
 		case <-videoTicker.C:
 			videoTs := uint32(videoFrames * 1000 / 24)
 			err := rtmpConn.WriteMessage(&message.VideoMessage{
-				MetadataFields: message.MetadataFields{StreamId: streamId, Timestamp: videoTs},
+				MetadataFields: message.MetadataFields{StreamId: videoStreamId, Timestamp: videoTs},
 				FrameType:      message.VideoFrameTypeKeyframe,
 				PacketType:     message.ERTMPVideoPacketTypeCodedFrames,
 				Tracks:         []message.VideoTrack{{CodecId: message.VideoCodecIdAvc, Payload: idrAvcc}},

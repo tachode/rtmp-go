@@ -83,7 +83,7 @@ func handleConn(conn net.Conn) {
 					send(rtmpConn, 3, c.MakeStatus(command.NewStatus(command.NetStreamPublishStart), 1))
 				case *command.Play:
 					send(rtmpConn, 3, c.MakeStatus(command.NewStatus(command.NetStreamPlayStart)))
-					go examples.StreamBlankMedia(rtmpConn, 3, 1, stopStreaming)
+					go examples.StreamBlankMedia(rtmpConn, 3, 1, 1, stopStreaming)
 				case *command.GetStreamLength:
 					send(rtmpConn, 3, c.MakeResponse(0)) // 0 == live
 				case *command.FCUnpublish:

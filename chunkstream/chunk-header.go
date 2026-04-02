@@ -155,7 +155,7 @@ func (h *ChunkHeader) Read(r io.Reader) (n int, err error) {
 		n += m
 		h.ChunkStreamId = 64 + uint32(basicHeader[1])
 	case 1:
-		if m, err = r.Read(basicHeader[1:3]); err != nil {
+		if m, err = io.ReadFull(r, basicHeader[1:3]); err != nil {
 			return
 		}
 		n += m
@@ -166,7 +166,7 @@ func (h *ChunkHeader) Read(r io.Reader) (n int, err error) {
 	case HeaderTypeFull:
 		h.TimestampIsDelta = false
 		var fullHeader [11]byte
-		if m, err = r.Read(fullHeader[:]); err != nil {
+		if m, err = io.ReadFull(r, fullHeader[:]); err != nil {
 			return
 		}
 		n += m
@@ -178,7 +178,7 @@ func (h *ChunkHeader) Read(r io.Reader) (n int, err error) {
 	case HeaderTypeSameStream:
 		h.TimestampIsDelta = true
 		var sameStreamHeader [7]byte
-		if m, err = r.Read(sameStreamHeader[:]); err != nil {
+		if m, err = io.ReadFull(r, sameStreamHeader[:]); err != nil {
 			return
 		}
 		n += m
@@ -188,7 +188,7 @@ func (h *ChunkHeader) Read(r io.Reader) (n int, err error) {
 	case HeaderTypeSameStreamAndLength:
 		h.TimestampIsDelta = true
 		var sameLengthAndStreamHeader [3]byte
-		if m, err = r.Read(sameLengthAndStreamHeader[:]); err != nil {
+		if m, err = io.ReadFull(r, sameLengthAndStreamHeader[:]); err != nil {
 			return
 		}
 		n += m
@@ -204,7 +204,7 @@ func (h *ChunkHeader) Read(r io.Reader) (n int, err error) {
 	// (ffmpeg, OBS, librtmp) send on every continuation chunk.
 	if h.Timestamp >= ExtendedTimestampMarker {
 		var extendedTimestamp [4]byte
-		if m, err = r.Read(extendedTimestamp[:]); err != nil {
+		if m, err = io.ReadFull(r, extendedTimestamp[:]); err != nil {
 			return
 		}
 		n += m

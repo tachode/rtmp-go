@@ -50,5 +50,5 @@ func main() {
 	// Stream blank media until the connection is closed
 	stop := make(chan struct{})
 	defer close(stop)
-	examples.StreamBlankMedia(rtmpConn, 3, 1, stop)
+	examples.StreamBlankMedia(rtmpConn, 3, 1, 1, stop)
 }
